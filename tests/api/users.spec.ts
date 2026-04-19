@@ -1,10 +1,7 @@
-import { test, expect } from '@playwright/test';
-import { UsersApiClient } from '../../src/api/UsersApiClient';
+import { test, expect } from '../../src/infrastructure/fixtures';
 
 test.describe('Users API — jsonplaceholder.typicode.com', () => {
-  test('returns a non-empty list of users', async ({ request }) => {
-    const usersApiClient = new UsersApiClient(request);
-
+  test('returns a non-empty list of users', async ({ usersApiClient }) => {
     const allUsers = await usersApiClient.fetchAllUsers();
 
     expect(allUsers.length).toBeGreaterThan(0);
@@ -12,8 +9,7 @@ test.describe('Users API — jsonplaceholder.typicode.com', () => {
     expect(allUsers[0]).toHaveProperty('email');
   });
 
-  test('returns a single user by id', async ({ request }) => {
-    const usersApiClient = new UsersApiClient(request);
+  test('returns a single user by id', async ({ usersApiClient }) => {
     const expectedUserId = 1;
 
     const singleUser = await usersApiClient.fetchSingleUserById(expectedUserId);
@@ -23,8 +19,7 @@ test.describe('Users API — jsonplaceholder.typicode.com', () => {
     expect(singleUser.email).toMatch(/@/);
   });
 
-  test('returns HTTP 404 for a non-existent user id', async ({ request }) => {
-    const usersApiClient = new UsersApiClient(request);
+  test('returns HTTP 404 for a non-existent user id', async ({ usersApiClient }) => {
     const nonExistentUserId = 999_999;
 
     const apiResponse =
