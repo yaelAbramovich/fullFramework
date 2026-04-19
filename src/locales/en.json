@@ -1,0 +1,40 @@
+{
+  "pages": {
+    "login": {
+      "urlPath": "/login",
+      "usernameFieldLabel": "Username",
+      "passwordFieldLabel": "Password",
+      "submitButtonAccessibleName": "Login",
+      "errors": {
+        "invalidUsername": "Your username is invalid!",
+        "invalidPassword": "Your password is invalid!"
+      }
+    },
+    "loggedIn": {
+      "secureAreaHeadingText": "Secure Area",
+      "logoutButtonAccessibleName": "Logout",
+      "successFlashMessageFragment": "You logged into a secure area!"
+    }
+  },
+  "api": {
+    "users": {
+      "collectionPath": "/users",
+      "singleResourcePathTemplate": "/users/{userId}"
+    },
+    "posts": {
+      "collectionPath": "/posts"
+    }
+  },
+  "logs": {
+    "actions": {
+      "clickingOnElement": "Clicking on element: {elementDescription}",
+      "fillingElementWithText": "Filling element \"{elementDescription}\" with text: {textValue}",
+      "navigatingToUrl": "Navigating to URL: {targetUrl}",
+      "waitingForElementToBeVisible": "Waiting for element to be visible: {elementDescription}",
+      "gettingTextFromElement": "Getting text from element: {elementDescription}",
+      "checkingIfElementIsVisible": "Checking if element is visible: {elementDescription}",
+      "sendingHttpRequest": "Sending {httpMethod} request to: {requestUrl}",
+      "receivedHttpResponse": "Received HTTP {statusCode} response from: {requestUrl}"
+    }
+  }
+}

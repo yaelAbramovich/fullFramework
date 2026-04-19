@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(lsof *)",
+      "Bash(kill 78589)",
+      "Bash(npm test *)",
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npx playwright *)",
+      "WebFetch(domain:playwright.dev)",
+      "Bash(curl -sI https://the-internet.herokuapp.com/login)",
+      "Bash(git mv *)"
+    ]
+  }
+}
