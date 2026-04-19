@@ -1,8 +1,12 @@
 import { test } from '@playwright/test';
 import { PageManager } from '../../src/infrastructure/PageManager';
-import { resolveString } from '../../src/utils/StringResolver';
+import strings from '../../src/utils/strings.json';
 
 test.describe('Login page — the-internet.herokuapp.com', () => {
+  // These tests exercise the login form itself, so they need a fresh unauthenticated browser.
+  // Remove this line in tests that should start already logged in.
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   let pageManager: PageManager;
 
   test.beforeEach(async ({ page }) => {
@@ -20,7 +24,7 @@ test.describe('Login page — the-internet.herokuapp.com', () => {
     await pageManager.loggedInSuccessPageInstance().assertSecureAreaHeadingIsVisible();
     await pageManager.loggedInSuccessPageInstance().assertLogoutButtonIsVisible();
     await pageManager.loginPageInstance().assertFlashMessageContainsText(
-      resolveString('pages.loggedIn.successFlashMessageFragment'),
+      strings.pages.loggedIn.successFlashMessageFragment,
     );
   });
 
@@ -31,7 +35,7 @@ test.describe('Login page — the-internet.herokuapp.com', () => {
     );
 
     await pageManager.loginPageInstance().assertFlashMessageContainsText(
-      resolveString('pages.login.errors.invalidUsername'),
+      strings.pages.login.invalidUsernameError,
     );
   });
 
@@ -42,7 +46,7 @@ test.describe('Login page — the-internet.herokuapp.com', () => {
     );
 
     await pageManager.loginPageInstance().assertFlashMessageContainsText(
-      resolveString('pages.login.errors.invalidPassword'),
+      strings.pages.login.invalidPasswordError,
     );
   });
 });

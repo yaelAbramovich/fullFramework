@@ -1,6 +1,6 @@
 import { Page, Locator } from '@playwright/test';
 import { BasePage } from './BasePage';
-import { resolveString } from '../utils/StringResolver';
+import strings from '../utils/strings.json';
 
 export class LoggedInSuccessPage extends BasePage {
   private readonly secureAreaHeadingLocator: Locator;
@@ -11,29 +11,33 @@ export class LoggedInSuccessPage extends BasePage {
 
     this.secureAreaHeadingLocator = this.page
       .getByRole('heading', {
-        name: resolveString('pages.loggedIn.secureAreaHeadingText'),
+        name: strings.pages.loggedIn.secureAreaHeadingText,
         exact: true,
       })
-      .describe('Secure Area heading');
+      .describe(strings.pages.loggedIn.descriptions.secureAreaHeading);
     this.logoutButtonLocator = this.page
-      .getByRole('link', {
-        name: resolveString('pages.loggedIn.logoutButtonAccessibleName'),
-      })
-      .describe('Logout button');
+      .getByRole('link', { name: strings.pages.loggedIn.logoutButtonAccessibleName })
+      .describe(strings.pages.loggedIn.descriptions.logoutButton);
   }
 
   public async assertSecureAreaHeadingIsVisible(): Promise<void> {
     await this.assertElementIsVisible(
       this.secureAreaHeadingLocator,
-      'Secure Area heading',
+      strings.pages.loggedIn.descriptions.secureAreaHeading,
     );
   }
 
   public async assertLogoutButtonIsVisible(): Promise<void> {
-    await this.assertElementIsVisible(this.logoutButtonLocator, 'Logout button');
+    await this.assertElementIsVisible(
+      this.logoutButtonLocator,
+      strings.pages.loggedIn.descriptions.logoutButton,
+    );
   }
 
   public async clickLogoutButton(): Promise<void> {
-    await this.clickOnElement(this.logoutButtonLocator, 'Logout button');
+    await this.clickOnElement(
+      this.logoutButtonLocator,
+      strings.pages.loggedIn.descriptions.logoutButton,
+    );
   }
 }

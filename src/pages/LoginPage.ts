@@ -1,6 +1,6 @@
 import { Page, Locator } from '@playwright/test';
 import { BasePage } from './BasePage';
-import { resolveString } from '../utils/StringResolver';
+import strings from '../utils/strings.json';
 
 export class LoginPage extends BasePage {
   private readonly usernameInputLocator: Locator;
@@ -11,38 +11,32 @@ export class LoginPage extends BasePage {
     super(page, 'LoginPage');
 
     this.usernameInputLocator = this.page
-      .getByLabel(resolveString('pages.login.usernameFieldLabel'))
-      .describe('Username input field');
+      .getByLabel(strings.pages.login.usernameFieldLabel)
+      .describe(strings.pages.login.descriptions.usernameField);
     this.passwordInputLocator = this.page
-      .getByLabel(resolveString('pages.login.passwordFieldLabel'))
-      .describe('Password input field');
+      .getByLabel(strings.pages.login.passwordFieldLabel)
+      .describe(strings.pages.login.descriptions.passwordField);
     this.submitButtonLocator = this.page
-      .getByRole('button', {
-        name: resolveString('pages.login.submitButtonAccessibleName'),
-      })
-      .describe('Login submit button');
+      .getByRole('button', { name: strings.pages.login.submitButtonAccessibleName })
+      .describe(strings.pages.login.descriptions.submitButton);
   }
 
   public async openLoginPage(): Promise<void> {
-    const loginUrlPath = resolveString('pages.login.urlPath');
-    await this.navigateToUrlPath(loginUrlPath);
-    // No explicit wait needed — subsequent actions auto-wait for the element
-    // to be actionable. If a test wants to verify the page is ready, it can
-    // call assertLoginFormIsVisible() which uses a web-first assertion.
+    await this.navigateToUrlPath(strings.pages.login.urlPath);
   }
 
   public async assertLoginFormIsVisible(): Promise<void> {
     await this.assertElementIsVisible(
       this.usernameInputLocator,
-      'Username input field',
+      strings.pages.login.descriptions.usernameField,
     );
     await this.assertElementIsVisible(
       this.passwordInputLocator,
-      'Password input field',
+      strings.pages.login.descriptions.passwordField,
     );
     await this.assertElementIsVisible(
       this.submitButtonLocator,
-      'Login submit button',
+      strings.pages.login.descriptions.submitButton,
     );
   }
 
@@ -50,7 +44,7 @@ export class LoginPage extends BasePage {
     await this.fillElementWithText(
       this.usernameInputLocator,
       username,
-      'Username input field',
+      strings.pages.login.descriptions.usernameField,
     );
   }
 
@@ -58,12 +52,15 @@ export class LoginPage extends BasePage {
     await this.fillElementWithText(
       this.passwordInputLocator,
       password,
-      'Password input field',
+      strings.pages.login.descriptions.passwordField,
     );
   }
 
   public async clickLoginSubmitButton(): Promise<void> {
-    await this.clickOnElement(this.submitButtonLocator, 'Login submit button');
+    await this.clickOnElement(
+      this.submitButtonLocator,
+      strings.pages.login.descriptions.submitButton,
+    );
   }
 
   public async submitLoginFormWithCredentials(
@@ -78,12 +75,14 @@ export class LoginPage extends BasePage {
   public async assertFlashMessageContainsText(
     expectedTextFragment: string,
   ): Promise<void> {
+    const flashMessageDescription =
+      strings.pages.login.descriptions.flashMessageWithFragment.replace(
+        '{fragment}',
+        expectedTextFragment,
+      );
     const flashMessageLocator = this.page
       .getByText(expectedTextFragment)
-      .describe(`Flash message containing "${expectedTextFragment}"`);
-    await this.assertElementIsVisible(
-      flashMessageLocator,
-      `Flash message containing "${expectedTextFragment}"`,
-    );
+      .describe(flashMessageDescription);
+    await this.assertElementIsVisible(flashMessageLocator, flashMessageDescription);
   }
 }

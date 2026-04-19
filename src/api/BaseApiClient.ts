@@ -1,8 +1,14 @@
 import { APIRequestContext, APIResponse } from '@playwright/test';
 import { Logger } from '../infrastructure/Logger';
-import { resolveString } from '../utils/StringResolver';
 
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+export const HttpMethod = {
+  GET: 'GET',
+  POST: 'POST',
+  PUT: 'PUT',
+  PATCH: 'PATCH',
+  DELETE: 'DELETE',
+} as const;
+export type HttpMethod = (typeof HttpMethod)[keyof typeof HttpMethod];
 
 export interface HttpRequestOptions {
   queryParameters?: Record<string, string | number | boolean>;
@@ -29,12 +35,7 @@ export abstract class BaseApiClient {
     requestUrlPath: string,
     requestOptions: HttpRequestOptions = {},
   ): Promise<APIResponse> {
-    this.logger.info(
-      resolveString('logs.actions.sendingHttpRequest', {
-        httpMethod,
-        requestUrl: requestUrlPath,
-      }),
-    );
+    this.logger.info(`Sending ${httpMethod} request to: ${requestUrlPath}`);
 
     const playwrightRequestOptions = {
       params: requestOptions.queryParameters,
@@ -48,10 +49,7 @@ export abstract class BaseApiClient {
     });
 
     this.logger.info(
-      resolveString('logs.actions.receivedHttpResponse', {
-        statusCode: apiResponse.status(),
-        requestUrl: requestUrlPath,
-      }),
+      `Received HTTP ${apiResponse.status()} response from: ${requestUrlPath}`,
     );
 
     return apiResponse;

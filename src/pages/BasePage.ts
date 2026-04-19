@@ -1,6 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
 import { Logger } from '../infrastructure/Logger';
-import { resolveString } from '../utils/StringResolver';
 
 /**
  * BasePage holds every shared Playwright action used by page objects.
@@ -33,9 +32,7 @@ export abstract class BasePage {
   // ---------- Navigation ----------
 
   protected async navigateToUrlPath(urlPath: string): Promise<void> {
-    this.logger.info(
-      resolveString('logs.actions.navigatingToUrl', { targetUrl: urlPath }),
-    );
+    this.logger.info(`Navigating to URL: ${urlPath}`);
     await this.page.goto(urlPath);
   }
 
@@ -53,9 +50,7 @@ export abstract class BasePage {
     elementLocator: Locator,
     elementDescription: string,
   ): Promise<void> {
-    this.logger.info(
-      resolveString('logs.actions.clickingOnElement', { elementDescription }),
-    );
+    this.logger.info(`Clicking on element: ${elementDescription}`);
     await elementLocator.click();
   }
 
@@ -65,10 +60,7 @@ export abstract class BasePage {
     elementDescription: string,
   ): Promise<void> {
     this.logger.info(
-      resolveString('logs.actions.fillingElementWithText', {
-        elementDescription,
-        textValue,
-      }),
+      `Filling element "${elementDescription}" with text: ${textValue}`,
     );
     await elementLocator.fill(textValue);
   }
@@ -77,9 +69,7 @@ export abstract class BasePage {
     elementLocator: Locator,
     elementDescription: string,
   ): Promise<string> {
-    this.logger.info(
-      resolveString('logs.actions.gettingTextFromElement', { elementDescription }),
-    );
+    this.logger.info(`Getting text from element: ${elementDescription}`);
     const textContent = await elementLocator.textContent();
     return (textContent ?? '').trim();
   }

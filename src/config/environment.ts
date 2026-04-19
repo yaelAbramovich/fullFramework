@@ -4,7 +4,6 @@ import * as path from 'path';
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 export type SupportedLogLevel = 'debug' | 'info' | 'warn' | 'error';
-export type SupportedLocale = 'en';
 
 function readStringEnvironmentVariableOrDefault(
   variableName: string,
@@ -34,13 +33,16 @@ function readNumericEnvironmentVariableOrDefault(
   return parsedValue;
 }
 
+export const AUTH_STATE_PATH = '.auth/user.json';
+
 export interface EnvironmentConfiguration {
   uiBaseUrl: string;
   apiBaseUrl: string;
+  uiUsername: string;
+  uiPassword: string;
   defaultActionTimeoutMs: number;
   defaultNavigationTimeoutMs: number;
   logLevel: SupportedLogLevel;
-  locale: SupportedLocale;
 }
 
 export const environmentConfiguration: EnvironmentConfiguration = {
@@ -52,6 +54,8 @@ export const environmentConfiguration: EnvironmentConfiguration = {
     'API_BASE_URL',
     'https://jsonplaceholder.typicode.com',
   ),
+  uiUsername: readStringEnvironmentVariableOrDefault('UI_USERNAME', 'tomsmith'),
+  uiPassword: readStringEnvironmentVariableOrDefault('UI_PASSWORD', 'SuperSecretPassword!'),
   defaultActionTimeoutMs: readNumericEnvironmentVariableOrDefault(
     'DEFAULT_ACTION_TIMEOUT_MS',
     10_000,
@@ -61,5 +65,4 @@ export const environmentConfiguration: EnvironmentConfiguration = {
     30_000,
   ),
   logLevel: readStringEnvironmentVariableOrDefault('LOG_LEVEL', 'info') as SupportedLogLevel,
-  locale: readStringEnvironmentVariableOrDefault('LOCALE', 'en') as SupportedLocale,
 };

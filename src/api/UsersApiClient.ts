@@ -1,6 +1,5 @@
 import { APIRequestContext, APIResponse } from '@playwright/test';
-import { BaseApiClient } from './BaseApiClient';
-import { resolveString } from '../utils/StringResolver';
+import { BaseApiClient, HttpMethod } from './BaseApiClient';
 
 export interface UserResource {
   id: number;
@@ -10,30 +9,33 @@ export interface UserResource {
 }
 
 export class UsersApiClient extends BaseApiClient {
+  private static readonly USERS_COLLECTION_PATH = '/users';
+
   public constructor(requestContext: APIRequestContext) {
     super(requestContext, 'UsersApiClient');
   }
 
   public async fetchAllUsers(): Promise<UserResource[]> {
-    const collectionPath = resolveString('api.users.collectionPath');
-    const apiResponse = await this.sendHttpRequest('GET', collectionPath);
+    const apiResponse = await this.sendHttpRequest(
+      HttpMethod.GET,
+      UsersApiClient.USERS_COLLECTION_PATH,
+    );
     return this.parseResponseAsJson<UserResource[]>(apiResponse);
   }
 
   public async fetchSingleUserById(userId: number): Promise<UserResource> {
-    const singleResourcePath = resolveString(
-      'api.users.singleResourcePathTemplate',
-      { userId },
+    const apiResponse = await this.sendHttpRequest(
+      HttpMethod.GET,
+      UsersApiClient.singleUserPath(userId),
     );
-    const apiResponse = await this.sendHttpRequest('GET', singleResourcePath);
     return this.parseResponseAsJson<UserResource>(apiResponse);
   }
 
   public async requestSingleUserResponseById(userId: number): Promise<APIResponse> {
-    const singleResourcePath = resolveString(
-      'api.users.singleResourcePathTemplate',
-      { userId },
-    );
-    return this.sendHttpRequest('GET', singleResourcePath);
+    return this.sendHttpRequest(HttpMethod.GET, UsersApiClient.singleUserPath(userId));
+  }
+
+  private static singleUserPath(userId: number): string {
+    return `${UsersApiClient.USERS_COLLECTION_PATH}/${userId}`;
   }
 }

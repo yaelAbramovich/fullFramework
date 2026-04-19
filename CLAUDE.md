@@ -36,24 +36,25 @@ test.spec.ts
         ├── loginPageInstance()            -> src/pages/LoginPage.ts
         │      └── extends BasePage        -> src/pages/BasePage.ts
         │             ├── actions log via  -> src/infrastructure/Logger.ts
-        │             └── strings via      -> src/utils/StringResolver.ts
-        │                                         └── src/locales/en.json
+        │             └── page strings via -> src/utils/strings.json
         └── loggedInSuccessPageInstance()  -> src/pages/LoggedInSuccessPage.ts
 ```
 
-**API tests** follow the same shape: a test creates `new UsersApiClient(request)` (extends `BaseApiClient`), which wraps Playwright's `APIRequestContext` and adds the same logging + locale-string conventions.
+**API tests** follow the same shape: a test creates `new UsersApiClient(request)` (extends `BaseApiClient`), which wraps Playwright's `APIRequestContext` and adds the same logging conventions. API paths live on the client that uses them (as `private static readonly` constants), not in `strings.json`.
 
 **Configuration** (`src/config/environment.ts`) is the only place `process.env` is read. It exposes a typed `environmentConfiguration` object that `playwright.config.ts` and the rest of the code import. Add a new env var there first, never read `process.env.*` from anywhere else.
 
 ## Non-obvious conventions (enforce when editing)
 
-1. **No hardcoded user-facing / API / log strings.** Every literal lives in `src/locales/en.json` and is read via `resolveString('dot.notated.key')`. The resolver supports `{placeholder}` substitution. When adding a page/field/message, add the string to `en.json` first, then reference the key. Future locales (Hebrew, etc.) drop in as sibling JSON files.
+1. **Page UI strings live in `src/utils/strings.json`.** The framework is single-language (English). Every literal tied to a page — locator names (`getByLabel('…')`, `getByRole('…', { name: '…' })`), `.describe('…')` text, page URL paths, error / success message fragments, element descriptions passed to `BasePage` helpers — lives in `src/utils/strings.json` under `pages.*`. Callers import the JSON directly: `import strings from '../utils/strings.json'` (enabled by `resolveJsonModule: true` in `tsconfig.json`), then reference `strings.pages.xxx.yyy`. Page-string templates that need interpolation use the `{placeholder}` syntax and are rendered inline with `.replace('{placeholder}', value)`. Tests import the same JSON — do NOT reintroduce `public static readonly` class constants for page strings.
+
+   **Out of scope for `strings.json`:** API request paths and framework log messages. API paths live on the client that uses them (`private static readonly` constants on the concrete `*ApiClient`, with small helpers for parameterised paths). Log messages are written as inline template literals at the call site (e.g., `` this.logger.info(`Clicking on element: ${elementDescription}`) ``). These are implementation details, not user-facing UI copy, and they stay next to the code that emits them.
 
 2. **POMs must extend `BasePage`.** BasePage is the *only* place Playwright's `Locator`/`Page` APIs are consumed for actions and assertions. POMs define locators inline (e.g., `this.page.getByLabel(...)`, `this.page.getByRole(...)`) but every click/fill/assert goes through `BasePage` helpers (`clickOnElement`, `fillElementWithText`, `assertElementIsVisible`, `assertElementContainsText`, …). Each helper takes an `elementDescription` string for the log line.
 
 3. **Locators: Playwright semantic APIs only.** Use `getByRole` / `getByLabel` / `getByText` / `getByPlaceholder` / `getByTestId` — never `page.locator(cssOrXPath)`. The user collects locators with Playwright MCP / codegen and pastes them directly into the POM constructor. Playwright does not have `getById`; the closest is `getByTestId` (uses `data-testid`).
 
-3a. **Every locator must end with `.describe('…')`.** After the `getBy*` call, chain `.describe('Human-readable element name')` so trace viewer / report output is readable. Example: `this.page.getByRole('button', { name: 'Login' }).describe('Login submit button')`. Applies to both field locators defined in the constructor and inline/dynamic locators built inside methods. Descriptions are developer-facing debug strings and are allowed to be inline literals (not stored in `en.json`) — same precedent as the `elementDescription` parameter passed to `BasePage` actions.
+3a. **Every locator must end with `.describe('…')`.** After the `getBy*` call, chain `.describe(strings.pages.xxx.descriptions.yyy)` so trace viewer / report output is readable. Example: `this.page.getByRole('button', { name: strings.pages.login.submitButtonAccessibleName }).describe(strings.pages.login.descriptions.submitButton)`. Applies to both field locators defined in the constructor and inline/dynamic locators built inside methods. The same description string is passed as the `elementDescription` argument to `BasePage` helpers — one key, both places.
 
 4. **Web-first assertions only.** `await expect(locator).toBeVisible()` (wrapped as `assertElementIsVisible`) — never `expect(await locator.isVisible()).toBe(true)` and never `locator.waitFor({ state: 'visible' })` as a pre-action gate. Playwright's actions auto-wait; the only reason to assert visibility is to verify a state.
 
@@ -67,10 +68,10 @@ test.spec.ts
 
 ## Adding things
 
-- **New page object:** create `src/pages/NewPage.ts` extending `BasePage`, add its strings to `en.json` under `pages.newPage.*`, register it in `PageManager` (field + constructor line + `newPageInstance()` accessor).
-- **New API client:** create `src/api/NewApiClient.ts` extending `BaseApiClient`, add paths to `en.json` under `api.newResource.*`.
+- **New page object:** add strings under `pages.newPage.*` in `src/utils/strings.json` (include a `descriptions.*` sub-object for every locator's `.describe()` + `elementDescription` text). Create `src/pages/NewPage.ts` extending `BasePage`, `import strings from '../utils/strings.json'`, reference the strings via `strings.pages.newPage.*`, and register the POM in `PageManager` (field + constructor line + `newPageInstance()` accessor). If a string has a `{placeholder}`, substitute it at the call site with `.replace('{placeholder}', value)`.
+- **New API client:** create `src/api/NewApiClient.ts` extending `BaseApiClient`. Hold each endpoint path as a `private static readonly` constant on the client; for parameterised paths add a small `private static` helper (e.g., `singleResourcePath(id: number): string`). Do NOT put API paths in `strings.json`.
 - **New env var:** add to `.env.example`, then to `EnvironmentConfiguration` interface + `environmentConfiguration` object in `src/config/environment.ts`.
-- **New log message:** add to `en.json` under `logs.actions.*` with `{placeholder}` tokens, reference via `resolveString`.
+- **New log message:** write it as a template literal at the call site (e.g., `` this.logger.info(`Doing X with ${value}`) ``). Log copy does not go in `strings.json`.
 
 ## CI
 
