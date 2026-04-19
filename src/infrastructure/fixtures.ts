@@ -1,31 +1,32 @@
 import { test as base } from '@playwright/test';
-import { UsersApiClient } from '../api/UsersApiClient';
 import { PageManager } from './PageManager';
 
 /**
- * Custom Playwright fixtures. Tests import `test` and `expect` from here
- * instead of `@playwright/test` — Playwright lazily instantiates each
- * fixture the first time a test's parameter list references it, so unused
- * fixtures cost nothing.
+ * Global Playwright fixtures — everything that is broadly useful across the
+ * whole test tree lives here. Tests (or suite-local fixture files) import
+ * `test` from this module and extend it further when they need fixtures
+ * that are only meaningful to a subset of tests.
  *
- * To add a fixture:
+ * Playwright lazily instantiates each fixture the first time a test's
+ * parameter list references it, so unused fixtures cost nothing.
+ *
+ * To add a global fixture:
  *   1. Add its type to `TestFixtures`.
  *   2. Add the factory under `.extend<TestFixtures>({ ... })`.
  *
+ * To add a fixture that's only relevant to one suite (e.g. an API client
+ * only the API specs need), do NOT add it here — create a suite-local
+ * fixture file (see `tests/api/fixtures.ts`) that extends this `test`.
+ *
  * Scope: fixtures default to test-scoped (fresh instance per test), which
- * matches `request` (APIRequestContext) and `page` (Page) — Playwright's
- * built-in fixtures these wrap are also test-scoped, so construction stays
- * aligned with the browser / request lifecycle.
+ * matches `page` — Playwright's built-in fixture we wrap is also
+ * test-scoped, so construction stays aligned with the browser lifecycle.
  */
 export interface TestFixtures {
-  usersApiClient: UsersApiClient;
   pageManager: PageManager;
 }
 
 export const test = base.extend<TestFixtures>({
-  usersApiClient: async ({ request }, use) => {
-    await use(new UsersApiClient(request));
-  },
   pageManager: async ({ page }, use) => {
     await use(new PageManager(page));
   },

@@ -1,4 +1,4 @@
-import { test, expect } from '../../src/infrastructure/fixtures';
+import { test, expect } from './fixtures';
 
 test.describe('Users API — jsonplaceholder.typicode.com', () => {
   test('returns a non-empty list of users', async ({ usersApiClient }) => {
