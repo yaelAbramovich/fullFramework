@@ -1,17 +1,13 @@
-import { test } from '@playwright/test';
-import { PageManager } from '../../../src/infrastructure/PageManager';
+import { test } from '../../../src/infrastructure/fixtures';
 import strings from '../../../src/utils/strings.json';
 
 test.describe('Login page — the-internet.herokuapp.com', () => {
-  let pageManager: PageManager;
-
-  test.beforeEach(async ({ page }) => {
-    pageManager = new PageManager(page);
+  test.beforeEach(async ({ pageManager }) => {
     await pageManager.loginPageInstance().openLoginPage();
     await pageManager.loginPageInstance().assertLoginFormIsVisible();
   });
 
-  test('logs in successfully with valid credentials', async () => {
+  test('logs in successfully with valid credentials', async ({ pageManager }) => {
     await pageManager.loginPageInstance().submitLoginFormWithCredentials(
       'tomsmith',
       'SuperSecretPassword!',
@@ -24,7 +20,7 @@ test.describe('Login page — the-internet.herokuapp.com', () => {
     );
   });
 
-  test('shows error message for invalid username', async () => {
+  test('shows error message for invalid username', async ({ pageManager }) => {
     await pageManager.loginPageInstance().submitLoginFormWithCredentials(
       'incorrectUser',
       'SuperSecretPassword!',
@@ -35,7 +31,7 @@ test.describe('Login page — the-internet.herokuapp.com', () => {
     );
   });
 
-  test('shows error message for invalid password', async () => {
+  test('shows error message for invalid password', async ({ pageManager }) => {
     await pageManager.loginPageInstance().submitLoginFormWithCredentials(
       'tomsmith',
       'wrongPassword',
