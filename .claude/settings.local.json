@@ -10,7 +10,10 @@
       "Bash(npx playwright *)",
       "WebFetch(domain:playwright.dev)",
       "Bash(curl -sI https://the-internet.herokuapp.com/login)",
-      "Bash(git mv *)"
+      "Bash(git mv *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }
