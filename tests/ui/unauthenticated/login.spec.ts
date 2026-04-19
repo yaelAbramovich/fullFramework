@@ -1,12 +1,8 @@
 import { test } from '@playwright/test';
-import { PageManager } from '../../src/infrastructure/PageManager';
-import strings from '../../src/utils/strings.json';
+import { PageManager } from '../../../src/infrastructure/PageManager';
+import strings from '../../../src/utils/strings.json';
 
 test.describe('Login page — the-internet.herokuapp.com', () => {
-  // These tests exercise the login form itself, so they need a fresh unauthenticated browser.
-  // Remove this line in tests that should start already logged in.
-  test.use({ storageState: { cookies: [], origins: [] } });
-
   let pageManager: PageManager;
 
   test.beforeEach(async ({ page }) => {

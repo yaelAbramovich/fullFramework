@@ -41,7 +41,7 @@ export default defineConfig({
     },
     {
       name: 'ui-chromium',
-      testDir: './tests/ui',
+      testDir: './tests/ui/authenticated',
       use: {
         ...devices['Desktop Chrome'],
         storageState: AUTH_STATE_PATH,
@@ -50,7 +50,7 @@ export default defineConfig({
     },
     {
       name: 'ui-firefox',
-      testDir: './tests/ui',
+      testDir: './tests/ui/authenticated',
       use: {
         ...devices['Desktop Firefox'],
         storageState: AUTH_STATE_PATH,
@@ -59,7 +59,7 @@ export default defineConfig({
     },
     {
       name: 'ui-webkit',
-      testDir: './tests/ui',
+      testDir: './tests/ui/authenticated',
       use: {
         ...devices['Desktop Safari'],
         storageState: AUTH_STATE_PATH,
@@ -71,6 +71,18 @@ export default defineConfig({
       testDir: './tests/api',
       use: {
         baseURL: environmentConfiguration.apiBaseUrl,
+      },
+    },
+    // Unauthenticated UI flows (login, signup, password reset, …). Runs on
+    // Chrome only and has no `setup` dependency — these tests must start
+    // with a fresh browser, so reusing the shared storageState would defeat
+    // their purpose. Project-level `storageState: empty` guarantees it.
+    {
+      name: 'not authorized user tests',
+      testDir: './tests/ui/unauthenticated',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: { cookies: [], origins: [] },
       },
     },
   ],
