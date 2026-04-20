@@ -1,10 +1,33 @@
 name: Playwright tests
 
+# Triggers. Currently manual-only via workflow_dispatch. In addition to manual
+# runs, this workflow could also be wired to run on pull_request (e.g. PRs
+# targeting main), push (e.g. merges to main or release branches), or schedule
+# (cron) for nightly/periodic runs.
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Playwright tag to run. Select "all" to run every test.'
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - smoke
+          - regression
+          - api
+          - login
+      # environment:
+      #   description: 'Target environment to run against. Each environment has
+      #     its own .env file (e.g. .env.dev, .env.staging, .env.prod) that is
+      #     loaded before the tests run.'
+      #   required: true
+      #   type: choice
+      #   options:
+      #     - dev
+      #     - staging
+      #     - prod
 
 jobs:
   test:
@@ -34,10 +57,10 @@ jobs:
         run: npm run lint
 
       - name: Run API tests
-        run: npx playwright test --project=api
+        run: npx playwright test --project=api ${{ inputs.tag != 'all' && format('--grep "@{0}"', inputs.tag) || '' }}
 
       - name: Run UI tests (chromium)
-        run: npx playwright test --project=ui-chromium
+        run: npx playwright test --project=ui-chromium ${{ inputs.tag != 'all' && format('--grep "@{0}"', inputs.tag) || '' }}
 
       - name: Upload Playwright report
         if: always()
