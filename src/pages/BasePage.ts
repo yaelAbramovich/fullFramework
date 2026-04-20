@@ -24,14 +24,6 @@ export abstract class BasePage {
   protected readonly page: Page;
   protected readonly logger: Logger;
 
-  /**
-   * Absolute path that `goto()` navigates to. Every concrete POM declares
-   * its own URL inline (e.g., `protected readonly urlPath = strings.pages.login.urlPath`),
-   * so tests can call `pageManager.xxxInstance().goto()` without each POM
-   * needing its own one-line `navigateToXxxPage()` wrapper.
-   */
-  protected abstract readonly urlPath: string;
-
   protected constructor(page: Page, pageLoggerName: string) {
     this.page = page;
     this.logger = new Logger(pageLoggerName);
@@ -39,10 +31,13 @@ export abstract class BasePage {
 
   // ---------- Navigation ----------
 
-  public async goto(): Promise<void> {
-    await this.navigateToUrlPath(this.urlPath);
-  }
-
+  /**
+   * Helper used by concrete POMs to implement their own `goto()`. URL paths
+   * are NOT user-facing UI strings (they are routing details that the user
+   * never reads), so they live as `private static readonly` endpoint constants
+   * on each navigable POM — never in `strings.json`. Each navigable POM
+   * defines `public async goto()` that delegates to this helper.
+   */
   protected async navigateToUrlPath(urlPath: string): Promise<void> {
     this.logger.info(`Navigating to URL: ${urlPath}`);
     await this.page.goto(urlPath);
@@ -75,6 +70,17 @@ export abstract class BasePage {
       `Filling element "${elementDescription}" with text: ${textValue}`,
     );
     await elementLocator.fill(textValue);
+  }
+
+  protected async selectOptionFromDropdown(
+    elementLocator: Locator,
+    optionValue: string,
+    elementDescription: string,
+  ): Promise<void> {
+    this.logger.info(
+      `Selecting option "${optionValue}" on element: ${elementDescription}`,
+    );
+    await elementLocator.selectOption(optionValue);
   }
 
   protected async getVisibleTextFromElement(

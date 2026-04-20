@@ -1,0 +1,20 @@
+services:
+  tests:
+    build: .
+    # Environment variables fall back to the defaults in .env.example when not
+    # set in the host shell, so `docker compose up` works out of the box
+    # against the public ParaBank demo without any extra configuration.
+    environment:
+      - UI_BASE_URL=${UI_BASE_URL:-https://parabank.parasoft.com/parabank}
+      - API_BASE_URL=${API_BASE_URL:-https://parabank.parasoft.com/parabank/services/bank/}
+      - VALID_USERNAME=${VALID_USERNAME:-john}
+      - VALID_PASSWORD=${VALID_PASSWORD:-demo}
+      - DEFAULT_ACTION_TIMEOUT_MS=${DEFAULT_ACTION_TIMEOUT_MS:-10000}
+      - DEFAULT_NAVIGATION_TIMEOUT_MS=${DEFAULT_NAVIGATION_TIMEOUT_MS:-30000}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - CI=true
+    volumes:
+      # Mount report and result directories so artefacts are available on the
+      # host after the container exits (useful for local debugging).
+      - ./playwright-report:/app/playwright-report
+      - ./test-results:/app/test-results

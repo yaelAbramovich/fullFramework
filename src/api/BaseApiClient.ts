@@ -79,9 +79,15 @@ export abstract class BaseApiClient {
     this.logger.debug(
       `Asserting ${requestDescription} returned HTTP ${expectedStatusCode}`,
     );
+    const actualStatus = apiResponse.status();
+    let responseBodyForFailure = '';
+    if (actualStatus !== expectedStatusCode) {
+      const responseBodyText = await apiResponse.text();
+      responseBodyForFailure = ` Response body: "${responseBodyText.slice(0, 500)}"`;
+    }
     expect(
-      apiResponse.status(),
-      `Expected ${requestDescription} to return HTTP ${expectedStatusCode} but got HTTP ${apiResponse.status()}`,
+      actualStatus,
+      `Expected ${requestDescription} to return HTTP ${expectedStatusCode} but got HTTP ${actualStatus}.${responseBodyForFailure}`,
     ).toBe(expectedStatusCode);
   }
 

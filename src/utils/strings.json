@@ -1,16 +1,27 @@
 {
   "pages": {
     "login": {
-      "urlPath": "/parabank/index.htm",
-      "loginButtonAccessibleName": "Log In"
+      "loginButtonAccessibleName": "Log In",
+      "invalidCredentialsErrorText": "The username and password could not be verified.",
+      "genericInternalErrorText": "An internal error has occurred and has been logged."
     },
     "welcome": {
-      "urlPath": "/parabank/register.htm",
       "welcomeHeadingTextTemplate": "Welcome {username}",
       "accountCreatedConfirmationText": "Your account was created successfully. You are now logged in."
     },
+    "accountsOverview": {
+      "pageHeadingText": "Accounts Overview"
+    },
+    "transferFunds": {
+      "formHeadingText": "Transfer Funds",
+      "transferCompleteHeadingText": "Transfer Complete!",
+      "transferButtonAccessibleName": "Transfer",
+      "genericErrorMessageText": "An internal error has occurred and has been logged."
+    },
+    "loggedInNav": {
+      "logoutLinkAccessibleName": "Log Out"
+    },
     "register": {
-      "urlPath": "/parabank/register.htm",
       "sectionHeadingText": "Signing up is easy!",
       "sectionIntroParagraphText": "If you have an account with us you can sign-up for free instant online access. You will have to provide some personal information.",
       "firstNameRowAccessibleName": "First Name:",
@@ -24,7 +35,8 @@
       "usernameRowAccessibleName": "Username:",
       "passwordRowAccessibleName": "Password:",
       "confirmPasswordRowAccessibleName": "Confirm:",
-      "submitButtonAccessibleName": "Register"
+      "submitButtonAccessibleName": "Register",
+      "lastNameRequiredErrorText": "Last name is required."
     }
   }
 }

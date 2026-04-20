@@ -3,8 +3,6 @@ import { BasePage } from './BasePage';
 import strings from '../utils/strings.json';
 
 export class WelcomePage extends BasePage {
-  protected readonly urlPath = strings.pages.welcome.urlPath;
-
   private readonly welcomeHeading: Locator;
   private readonly accountCreatedConfirmation: Locator;
 
@@ -17,7 +15,7 @@ export class WelcomePage extends BasePage {
 
     this.accountCreatedConfirmation = this.page
       .getByText(strings.pages.welcome.accountCreatedConfirmationText, { exact: true })
-      .describe('"Your account was created successfully" confirmation message');
+      .describe(`"${strings.pages.welcome.accountCreatedConfirmationText}" confirmation message`);
   }
 
   public async assertWelcomeHeadingForUserIsVisible(username: string): Promise<void> {
@@ -31,7 +29,7 @@ export class WelcomePage extends BasePage {
   public async assertAccountCreatedConfirmationIsVisible(): Promise<void> {
     await this.assertElementIsVisible(
       this.accountCreatedConfirmation,
-      '"Your account was created successfully" confirmation message',
+      `"'${strings.pages.welcome.accountCreatedConfirmationText}' confirmation message`,
     );
   }
 

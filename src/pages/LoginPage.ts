@@ -3,11 +3,12 @@ import { BasePage } from './BasePage';
 import strings from '../utils/strings.json';
 
 export class LoginPage extends BasePage {
-  protected readonly urlPath = strings.pages.login.urlPath;
+  private static readonly loginEndpoint = '/parabank/index.htm';
 
   private readonly usernameField: Locator;
   private readonly passwordField: Locator;
   private readonly loginButton: Locator;
+  private readonly loginErrorMessage: Locator;
 
   public constructor(page: Page) {
     super(page, 'LoginPage');
@@ -25,6 +26,17 @@ export class LoginPage extends BasePage {
     this.loginButton = this.page
       .getByRole('button', { name: strings.pages.login.loginButtonAccessibleName })
       .describe('Log In button');
+
+    this.loginErrorMessage = this.page
+      .getByText(strings.pages.login.invalidCredentialsErrorText, { exact: true })
+      .or(
+        this.page.getByText(strings.pages.login.genericInternalErrorText, { exact: true }),
+      )
+      .describe('Login failed error message');
+  }
+
+  public async gotoLoginPage(): Promise<void> {
+    await this.navigateToUrlPath(LoginPage.loginEndpoint);
   }
 
   public async fillUsername(username: string): Promise<void> {
@@ -43,5 +55,13 @@ export class LoginPage extends BasePage {
     await this.fillUsername(username);
     await this.fillPassword(password);
     await this.clickLogin();
+  }
+
+  public async assertLoginButtonIsVisible(): Promise<void> {
+    await this.assertElementIsVisible(this.loginButton, 'Log In button');
+  }
+
+  public async assertLoginErrorMessageIsVisible(): Promise<void> {
+    await this.assertElementIsVisible(this.loginErrorMessage, 'Login failed error message');
   }
 }

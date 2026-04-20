@@ -34,6 +34,8 @@ function readNumericEnvironmentVariableOrDefault(
 export interface EnvironmentConfiguration {
   uiBaseUrl: string;
   apiBaseUrl: string;
+  validUsername: string;
+  validPassword: string;
   defaultActionTimeoutMs: number;
   defaultNavigationTimeoutMs: number;
   logLevel: SupportedLogLevel;
@@ -48,6 +50,8 @@ export const environmentConfiguration: EnvironmentConfiguration = {
     'API_BASE_URL',
     'https://parabank.parasoft.com/parabank/services/bank/',
   ),
+  validUsername: readStringEnvironmentVariableOrDefault('VALID_USERNAME', 'john'),
+  validPassword: readStringEnvironmentVariableOrDefault('VALID_PASSWORD', 'demo'),
   defaultActionTimeoutMs: readNumericEnvironmentVariableOrDefault(
     'DEFAULT_ACTION_TIMEOUT_MS',
     10_000,

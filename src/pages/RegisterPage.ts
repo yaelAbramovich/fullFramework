@@ -19,27 +19,32 @@ export interface RegistrationFormData {
 export type RegistrationFieldName = keyof RegistrationFormData;
 
 export class RegisterPage extends BasePage {
-  protected readonly urlPath = strings.pages.register.urlPath;
+  private static readonly registerEndpoint = '/parabank/register.htm';
 
   private readonly heading: Locator;
   private readonly introParagraph: Locator;
   private readonly submitButton: Locator;
   private readonly form: Record<RegistrationFieldName, Locator>;
+  private readonly lastNameRequiredError: Locator;
 
   public constructor(page: Page) {
     super(page, 'RegisterPage');
 
     this.heading = this.page
       .getByRole('heading', { level: 1, name: strings.pages.register.sectionHeadingText })
-      .describe('"Signing up is easy!" section heading');
+      .describe(`"${strings.pages.register.sectionHeadingText}" section heading`);
 
     this.introParagraph = this.page
       .getByText(strings.pages.register.sectionIntroParagraphText, { exact: true })
-      .describe('"Signing up is easy!" section intro paragraph');
+      .describe(`"${strings.pages.register.sectionIntroParagraphText}" section intro paragraph`);
 
     this.submitButton = this.page
       .getByRole('button', { name: strings.pages.register.submitButtonAccessibleName })
       .describe('Register submit button');
+
+    this.lastNameRequiredError = this.page
+      .getByText(strings.pages.register.lastNameRequiredErrorText, { exact: true })
+      .describe(`"${strings.pages.register.lastNameRequiredErrorText}" error message`);
 
     this.form = {
       firstName: this.page
@@ -89,6 +94,10 @@ export class RegisterPage extends BasePage {
     };
   }
 
+  public async gotoRegisterPage(): Promise<void> {
+    await this.navigateToUrlPath(RegisterPage.registerEndpoint);
+  }
+
   public async fillField(fieldName: RegistrationFieldName, value: string): Promise<void> {
     await this.fillElementWithText(this.form[fieldName], value, `${fieldName} field`);
   }
@@ -130,5 +139,12 @@ export class RegisterPage extends BasePage {
     await this.assertSectionHeadingIsVisible();
     await this.assertSectionIntroParagraphIsVisible();
     await this.assertSubmitButtonIsVisible();
+  }
+
+  public async assertLastNameRequiredErrorIsVisible(): Promise<void> {
+    await this.assertElementIsVisible(
+      this.lastNameRequiredError,
+      '"Last name is required." error message',
+    );
   }
 }
