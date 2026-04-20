@@ -185,7 +185,7 @@ If you don't need a new helper, don't touch BasePage.
 
 ### Step 5 — Write the POM file
 
-Create `src/pages/<ClassName>.ts` with this exact structure (method groups must appear in this order):
+Create `src/pages/<ClassName>.ts` with this exact structure (groups must appear in this order):
 
 ```ts
 import { Page, Locator } from '@playwright/test';
@@ -193,47 +193,54 @@ import { BasePage } from './BasePage';
 import strings from '../utils/strings.json';
 
 export class <ClassName> extends BasePage {
-  // 1. Private readonly locator fields (one per interactive element)
+  // 1. urlPath — REQUIRED. BasePage's abstract field; the inherited goto()
+  //    uses it. Tests call `pageManager.<lowerCamel>Instance().goto()`,
+  //    so do NOT add a per-POM navigateToXxxPage() method.
+  protected readonly urlPath = strings.pages.<key>.urlPath;
+
+  // 2. Private readonly locator fields (one per interactive element)
   private readonly <locator1>: Locator;
   private readonly <locator2>: Locator;
 
-  // 2. Constructor — instantiate locators with the priority from Step 2
+  // 3. Constructor — instantiate locators with the priority from Step 2.
+  //    Inline a literal description in every .describe(...) call (Step 3b).
   public constructor(page: Page) {
     super(page, '<ClassName>');
 
     this.<locator1> = this.page
       .getByTestId(strings.pages.<key>.<testIdKey>)
-      .describe(strings.pages.<key>.descriptions.<locator1>);
+      .describe('<inline literal description>');
     // …
   }
 
-  // 3. Atomic actions — one user interaction per method
+  // 4. Atomic actions — one user interaction per method.
+  //    Pass an inline literal as the BasePage helper's elementDescription
+  //    (the same literal used in the locator's .describe(...) above).
   public async fillUsernameField(username: string): Promise<void> {
     await this.fillElementWithText(
       this.usernameInputLocator,
       username,
-      strings.pages.<key>.descriptions.usernameField,
+      'Username field',
     );
   }
 
   public async fillPasswordField(password: string): Promise<void> { /* … */ }
   public async clickLoginSubmitButton(): Promise<void> { /* … */ }
 
-  // 4. Composite actions — compose atomics into reusable flows.
+  // 5. Composite actions — compose atomics into reusable flows.
   //    Name composites so the caller can predict behavior from the name alone.
-  public async fillUsernamePasswordAndLogin(
-    username: string,
-    password: string,
-  ): Promise<void> {
+  public async login(username: string, password: string): Promise<void> {
     await this.fillUsernameField(username);
     await this.fillPasswordField(password);
     await this.clickLoginSubmitButton();
   }
 
-  // 5. Assertions — always at the bottom of the class
+  // 6. Assertions — always at the bottom of the class
   public async assertLoginFormIsVisible(): Promise<void> { /* … */ }
 }
 ```
+
+> **Navigation:** there is no `navigate*` method on the POM. BasePage's public `goto()` reads `this.urlPath` and calls `this.navigateToUrlPath(this.urlPath)`. Tests reach the page with `pageManager.<lowerCamel>Instance().goto()`. Forgetting to declare `urlPath` is a TypeScript error (BasePage's abstract field).
 
 Rule encoding (these map 1-to-1 to the repo's POM rules — verify each one before saving the file):
 
@@ -252,6 +259,7 @@ Rule encoding (these map 1-to-1 to the repo's POM rules — verify each one befo
 | 10 | No implicit waits | Web-first assertions (`expect(locator).toBeVisible()` wrapped as `assertElementIsVisible`). No `waitForTimeout`, no `locator.waitFor()` as a pre-action gate. |
 | 11 | Assertions at the bottom | All `assertXxx()` methods come last, after atomic + composite actions. |
 | 12 | Every `expect(...)` has a descriptive message | Second arg of every `expect(value, message?)` and `expect.soft(value, message?)` is a descriptive sentence — `` `Expected ${elementDescription} to <verb> "${expectedValue}"` ``. Verb mirrors the matcher; expected value included when the matcher takes one. Built inline at the call site, never lifted to `strings.json`. Existing BasePage helpers already comply; verify any new helper or any inline `expect(...)` you add does too. |
+| 13 | `urlPath` declared, no per-POM navigate method | Every POM declares `protected readonly urlPath = strings.pages.<key>.urlPath` near the top of the class — TS will fail compile otherwise (it's an abstract field on BasePage). Tests call the inherited `goto()` (e.g., `pageManager.checkoutPageInstance().goto()`); never add a `navigateToXxxPage()` wrapper. |
 
 ### Step 6 — Register in `PageManager`
 
@@ -317,6 +325,7 @@ If the user's request would violate any of the rules below, stop and explain why
 5. **Hard-coded UI strings in the POM body** (accessible names, visible text, labels, placeholders, URL paths, app messages), even for "obvious" things like button names. They go in `strings.json`. (Locator `.describe(...)` text and BasePage `elementDescription` arguments are *not* UI strings — they are inlined as literals at the call site; see Step 3b.)
 5a. **Putting any internal code string into `strings.json`** — specifically: (1) **logger call copy** (the template inside `this.logger.info/.debug/.warn/.error`), (2) **`expect(...)` failure messages** (the second arg of `expect(value, message?)`), or (3) **locator `.describe(...)` text and BasePage `elementDescription` arguments** (e.g., a `descriptions` sub-object). All three are internal — read by test authors in logs, traces, reports, and failure output, **never by the application's user**. They are inlined as template literals or string literals at the call site that emits them. `strings.json` is the file a translator / PM / copy-editor would read; it must contain only what the application's user sees. If you find an existing `descriptions` sub-object, log message lifted to JSON, or expect-message key in `strings.json`, fix it before proceeding with the new POM.
 5b. **Centralizing description strings in a `const DESCRIPTIONS = { ... }` map / object / constant.** Inline the literal at every `.describe(...)` and BasePage-helper call site instead. The duplication is intentional: POMs are small, descriptions are short, and a centralized map adds an indirection for the reader.
+5c. **Adding a per-POM `navigateToXxxPage()` (or any other) wrapper around `navigateToUrlPath`.** BasePage already exposes `goto()` which uses the POM's `urlPath` field. Every POM declares `protected readonly urlPath = strings.pages.<key>.urlPath` and tests call `pageManager.xxxInstance().goto()`. A per-POM navigate wrapper duplicates a one-line method across every POM in the framework — the previous LoginPage/RegisterPage navigate methods were removed for exactly this reason.
 6. **Locator built from a CSS / XPath selector** when a `data-testid`, semantic `getBy*`, or chain-and-filter alternative exists. Ask for a test id instead.
 7. **Locator that relies on implementation details** (CSS class names, component IDs, framework-generated attributes) — Playwright best practices: "test user-visible behavior". The locator must be expressible in terms the user can see.
 8. **Third-party calls in the POM or test assertions.** Mock them with `page.route()` at the test level; the POM itself stays third-party-agnostic.

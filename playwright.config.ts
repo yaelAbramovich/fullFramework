@@ -46,5 +46,12 @@ export default defineConfig({
         baseURL: environmentConfiguration.apiBaseUrl,
       },
     },
+    {
+      name: 'e2e',
+      testDir: './tests/e2e',
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
   ],
 });

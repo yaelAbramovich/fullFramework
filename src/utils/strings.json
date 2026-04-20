@@ -1,5 +1,14 @@
 {
   "pages": {
+    "login": {
+      "urlPath": "/parabank/index.htm",
+      "loginButtonAccessibleName": "Log In"
+    },
+    "welcome": {
+      "urlPath": "/parabank/register.htm",
+      "welcomeHeadingTextTemplate": "Welcome {username}",
+      "accountCreatedConfirmationText": "Your account was created successfully. You are now logged in."
+    },
     "register": {
       "urlPath": "/parabank/register.htm",
       "sectionHeadingText": "Signing up is easy!",

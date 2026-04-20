@@ -4,6 +4,7 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+.playwright-mcp/
 .env
 .auth/
 .DS_Store

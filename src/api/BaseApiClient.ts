@@ -1,4 +1,4 @@
-import { APIRequestContext, APIResponse } from '@playwright/test';
+import { APIRequestContext, APIResponse, expect } from '@playwright/test';
 import { Logger } from '../infrastructure/Logger';
 
 export const HttpMethod = {
@@ -18,8 +18,9 @@ export interface HttpRequestOptions {
 
 /**
  * BaseApiClient wraps Playwright's APIRequestContext and adds consistent
- * logging for every request and response. Concrete clients (e.g. UsersApiClient)
- * extend this class and expose endpoint-specific methods.
+ * logging for every request and response, JSON parsing, and status-code
+ * assertion helpers. Concrete clients (e.g. UsersApiClient) extend this
+ * class and expose endpoint-specific methods.
  */
 export abstract class BaseApiClient {
   protected readonly requestContext: APIRequestContext;
@@ -68,5 +69,30 @@ export abstract class BaseApiClient {
       );
       throw parseError;
     }
+  }
+
+  protected async assertResponseStatusIs(
+    apiResponse: APIResponse,
+    expectedStatusCode: number,
+    requestDescription: string,
+  ): Promise<void> {
+    this.logger.debug(
+      `Asserting ${requestDescription} returned HTTP ${expectedStatusCode}`,
+    );
+    expect(
+      apiResponse.status(),
+      `Expected ${requestDescription} to return HTTP ${expectedStatusCode} but got HTTP ${apiResponse.status()}`,
+    ).toBe(expectedStatusCode);
+  }
+
+  protected async assertResponseStatusIsOk(
+    apiResponse: APIResponse,
+    requestDescription: string,
+  ): Promise<void> {
+    this.logger.debug(`Asserting ${requestDescription} returned a 2xx status`);
+    await expect(
+      apiResponse,
+      `Expected ${requestDescription} to return a 2xx status but got HTTP ${apiResponse.status()}`,
+    ).toBeOK();
   }
 }

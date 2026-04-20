@@ -46,7 +46,7 @@ export const environmentConfiguration: EnvironmentConfiguration = {
   ),
   apiBaseUrl: readStringEnvironmentVariableOrDefault(
     'API_BASE_URL',
-    'https://parabank.parasoft.com/parabank/services/bank',
+    'https://parabank.parasoft.com/parabank/services/bank/',
   ),
   defaultActionTimeoutMs: readNumericEnvironmentVariableOrDefault(
     'DEFAULT_ACTION_TIMEOUT_MS',

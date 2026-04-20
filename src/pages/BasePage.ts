@@ -24,12 +24,24 @@ export abstract class BasePage {
   protected readonly page: Page;
   protected readonly logger: Logger;
 
+  /**
+   * Absolute path that `goto()` navigates to. Every concrete POM declares
+   * its own URL inline (e.g., `protected readonly urlPath = strings.pages.login.urlPath`),
+   * so tests can call `pageManager.xxxInstance().goto()` without each POM
+   * needing its own one-line `navigateToXxxPage()` wrapper.
+   */
+  protected abstract readonly urlPath: string;
+
   protected constructor(page: Page, pageLoggerName: string) {
     this.page = page;
     this.logger = new Logger(pageLoggerName);
   }
 
   // ---------- Navigation ----------
+
+  public async goto(): Promise<void> {
+    await this.navigateToUrlPath(this.urlPath);
+  }
 
   protected async navigateToUrlPath(urlPath: string): Promise<void> {
     this.logger.info(`Navigating to URL: ${urlPath}`);

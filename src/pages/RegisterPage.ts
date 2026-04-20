@@ -19,6 +19,8 @@ export interface RegistrationFormData {
 export type RegistrationFieldName = keyof RegistrationFormData;
 
 export class RegisterPage extends BasePage {
+  protected readonly urlPath = strings.pages.register.urlPath;
+
   private readonly heading: Locator;
   private readonly introParagraph: Locator;
   private readonly submitButton: Locator;
@@ -87,10 +89,6 @@ export class RegisterPage extends BasePage {
     };
   }
 
-  public async navigateToRegisterPage(): Promise<void> {
-    await this.navigateToUrlPath(strings.pages.register.urlPath);
-  }
-
   public async fillField(fieldName: RegistrationFieldName, value: string): Promise<void> {
     await this.fillElementWithText(this.form[fieldName], value, `${fieldName} field`);
   }
@@ -108,7 +106,7 @@ export class RegisterPage extends BasePage {
     }
   }
 
-  public async register(formData: RegistrationFormData): Promise<void> {
+  public async fillFormAndRegister(formData: RegistrationFormData): Promise<void> {
     await this.fillForm(formData);
     await this.clickSubmit();
   }
