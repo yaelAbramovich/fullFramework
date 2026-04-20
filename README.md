@@ -15,7 +15,7 @@ Playwright + TypeScript automation framework for [parabank.parasoft.com](https:/
 
 ```bash
 npm install
-npx playwright install chromium
+npx playwright install chromium   # chromium only — framework runs no other browser; install all with `npx playwright install` if you add more projects
 cp .env.example .env   # defaults work against the public demo out of the box
 ```
 
@@ -81,8 +81,6 @@ API / E2E tests
 
 ## Design Decisions & Tradeoffs
 
-**Playwright over Cypress / Selenium** — native TypeScript, built-in `APIRequestContext` (UI + API in one framework), auto-wait, true multi-browser parallelism. Tradeoff: lower-level API than Cypress; pays off at scale.
-
 **BasePage / BaseApiClient mediate all framework calls** — POMs and API clients never call Playwright APIs directly. A version upgrade is a one-file change; every action emits a consistent log line readable in traces.
 
 **`strings.json` for user-facing text only** — accessible names and visible labels in one file; a label rename is one edit. Internal copy (log messages, trace descriptions) lives inline next to the code that emits it.
@@ -118,8 +116,8 @@ API / E2E tests
 
 **Configuration** — `src/config/environment.ts` is the single `process.env` reader. New variables: add to `.env.example`, the interface, and the object with a safe default. TypeScript catches stale references at compile time.
 
-**Reporting** — HTML report generated after every run. Trace captured `on-first-retry` (available for the first unexplained CI failure, zero overhead on clean runs). Screenshots and video retained on failure only. Report artifact uploaded to GitHub Actions with 14-day retention.
+**Reporting** — HTML report generated after every run. Trace captured `on-first-retry` (available for the first unexplained CI failure, zero overhead on clean runs). Screenshots and video retained on failure only. Report artifact uploaded to GitHub Actions with 4-day retention.
 
-**CI** — GitHub Actions (`workflow_dispatch`) with a tag-filter dropdown. Pipeline: `typecheck → lint → API tests → UI tests → E2E tests → upload report`. Ready to add `on: pull_request` or `on: schedule` in one line. A second `docker` job builds the image and runs `@smoke` to validate the container is always functional.
+**CI** — GitHub Actions (`workflow_dispatch`) with a tag-filter dropdown. Pipeline: `typecheck → lint → API tests → UI tests → E2E tests → upload report`. Ready to add `on: pull_request` or `on: schedule` in one line.
 
 **Docker** — Base image `mcr.microsoft.com/playwright:v1.48.0-jammy` (all browser OS dependencies pre-installed). Node 22 is layered on top (required for faker v10 ESM compatibility). Dependencies are installed from the public npm registry. `CI=true` is baked into the image. `docker-compose.yml` mounts reports to the host and defaults to the public ParaBank demo — zero config required.
