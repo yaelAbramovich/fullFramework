@@ -81,7 +81,10 @@ export abstract class BasePage {
     elementDescription: string,
   ): Promise<void> {
     this.logger.debug(`Asserting element is visible: ${elementDescription}`);
-    await expect(elementLocator, elementDescription).toBeVisible();
+    await expect(
+      elementLocator,
+      `Expected ${elementDescription} to be visible`,
+    ).toBeVisible();
   }
 
   protected async assertElementIsHidden(
@@ -89,7 +92,10 @@ export abstract class BasePage {
     elementDescription: string,
   ): Promise<void> {
     this.logger.debug(`Asserting element is hidden: ${elementDescription}`);
-    await expect(elementLocator, elementDescription).toBeHidden();
+    await expect(
+      elementLocator,
+      `Expected ${elementDescription} to be hidden`,
+    ).toBeHidden();
   }
 
   protected async assertElementHasExactText(
@@ -100,7 +106,10 @@ export abstract class BasePage {
     this.logger.debug(
       `Asserting element "${elementDescription}" has exact text: ${expectedText}`,
     );
-    await expect(elementLocator, elementDescription).toHaveText(expectedText);
+    await expect(
+      elementLocator,
+      `Expected ${elementDescription} to have exact text "${expectedText}"`,
+    ).toHaveText(expectedText);
   }
 
   protected async assertElementContainsText(
@@ -111,6 +120,9 @@ export abstract class BasePage {
     this.logger.debug(
       `Asserting element "${elementDescription}" contains text: ${expectedText}`,
     );
-    await expect(elementLocator, elementDescription).toContainText(expectedText);
+    await expect(
+      elementLocator,
+      `Expected ${elementDescription} to contain text "${expectedText}"`,
+    ).toContainText(expectedText);
   }
 }

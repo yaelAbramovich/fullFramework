@@ -1,4 +1,5 @@
 import { Page } from '@playwright/test';
+import { RegisterPage } from '../pages/RegisterPage';
 
 /**
  * PageManager is the single entry point tests use to access page objects.
@@ -10,5 +11,13 @@ import { Page } from '@playwright/test';
  * expose an `xxxInstance()` method.
  */
 export class PageManager {
-  constructor(private readonly page: Page) {}
+  private readonly registerPage: RegisterPage;
+
+  constructor(private readonly page: Page) {
+    this.registerPage = new RegisterPage(this.page);
+  }
+
+  registerPageInstance(): RegisterPage {
+    return this.registerPage;
+  }
 }

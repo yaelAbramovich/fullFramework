@@ -1,3 +1,21 @@
 {
-  "pages": {}
+  "pages": {
+    "register": {
+      "urlPath": "/parabank/register.htm",
+      "sectionHeadingText": "Signing up is easy!",
+      "sectionIntroParagraphText": "If you have an account with us you can sign-up for free instant online access. You will have to provide some personal information.",
+      "firstNameRowAccessibleName": "First Name:",
+      "lastNameRowAccessibleName": "Last Name:",
+      "addressRowAccessibleName": "Address:",
+      "cityRowAccessibleName": "City:",
+      "stateRowAccessibleName": "State:",
+      "zipCodeRowAccessibleName": "Zip Code:",
+      "phoneNumberRowAccessibleName": "Phone #:",
+      "ssnRowAccessibleName": "SSN:",
+      "usernameRowAccessibleName": "Username:",
+      "passwordRowAccessibleName": "Password:",
+      "confirmPasswordRowAccessibleName": "Confirm:",
+      "submitButtonAccessibleName": "Register"
+    }
+  }
 }
