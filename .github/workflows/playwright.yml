@@ -39,11 +39,12 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: 22
 
       - name: Install dependencies
-        run: npm ci
+        # package-lock.json resolves from a private corporate registry; use the
+        # public npm registry so CI works without injecting credentials.
+        run: npm install --registry=https://registry.npmjs.org
 
       # Best practice: install only the browsers actually used in CI to
       # save download time and disk. See
