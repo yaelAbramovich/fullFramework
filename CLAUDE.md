@@ -12,6 +12,10 @@ npm run lint                             # eslint . (no-floating-promises is enf
 npm test                                 # run all tests, all projects
 npm run test:ui                          # only UI specs (tests/ui)
 npm run test:api                         # only API specs (tests/api)
+npm run test:e2e                         # only E2E specs (tests/e2e)
+npm run test:smoke                       # @smoke tag
+npm run test:regression                  # @regression tag
+npm run test:negative                    # @negative tag
 npm run test:headed                      # UI in headed mode
 npm run test:debug                       # Playwright inspector
 npm run report                           # open last HTML report
@@ -19,10 +23,10 @@ npm run report                           # open last HTML report
 
 Run a single test / project / file:
 ```bash
-npx playwright test tests/ui/login.spec.ts           # one file
-npx playwright test --project=ui-chromium            # one project
-npx playwright test -g "invalid password"            # by title grep
-npx playwright test tests/ui/login.spec.ts:14        # file + line number
+npx playwright test tests/ui/uiNegativeTests.spec.ts     # one file
+npx playwright test --project=ui-chromium                # one project
+npx playwright test -g "invalid password"                # by title grep
+npx playwright test tests/ui/uiNegativeTests.spec.ts:14  # file + line number
 ```
 
 ## Architecture
@@ -32,15 +36,16 @@ The framework layers map 1:1 to folders under `src/`. A test never talks to Play
 **Read/write flow of a UI test:**
 ```
 test.spec.ts
-  └── new PageManager(page)
-        ├── loginPageInstance()            -> src/pages/LoginPage.ts
-        │      └── extends BasePage        -> src/pages/BasePage.ts
-        │             ├── actions log via  -> src/infrastructure/Logger.ts
-        │             └── page strings via -> src/utils/strings.json
-        └── loggedInSuccessPageInstance()  -> src/pages/LoggedInSuccessPage.ts
+  └── pageManager fixture (src/infrastructure/fixtures.ts)
+        └── PageManager (src/infrastructure/PageManager.ts)
+              ├── loginPageInstance()            -> src/pages/LoginPage.ts
+              │      └── extends BasePage        -> src/pages/BasePage.ts
+              │             ├── actions log via  -> src/infrastructure/Logger.ts
+              │             └── page strings via -> src/utils/strings.json
+              └── accountsOverviewPageInstance() -> src/pages/AccountsOverviewPage.ts
 ```
 
-**API tests** follow the same shape: a test creates `new UsersApiClient(request)` (extends `BaseApiClient`), which wraps Playwright's `APIRequestContext` and adds the same logging conventions. API paths live on the client that uses them (as `private static readonly` constants), not in `strings.json`.
+**API tests** construct clients inline in the test body: `new CustomersApiClient(request)` (extends `BaseApiClient`), which wraps Playwright's `APIRequestContext` and adds the same logging conventions. For clients that need a custom auth context (e.g. HTTP Basic), create `playwright.request.newContext(...)` inline and dispose it in a `try/finally`. API paths live on the client that uses them (as `private static readonly` constants), not in `strings.json`.
 
 **Configuration** (`src/config/environment.ts`) is the only place `process.env` is read. It exposes a typed `environmentConfiguration` object that `playwright.config.ts` and the rest of the code import. Add a new env var there first, never read `process.env.*` from anywhere else.
 
@@ -64,7 +69,18 @@ test.spec.ts
 
 5. **PageManager pattern.** Fields are `private readonly`; every POM is instantiated in the constructor; tests access pages via `pageManager.xxxInstance()` accessor methods (not direct field access). When adding a POM: add a `private readonly` field, instantiate it in the constructor, expose an `xxxInstance()` method.
 
-5a. **Specs consume `pageManager` via the fixture — never construct it inline.** The `pageManager` fixture lives in `src/infrastructure/fixtures.ts`. Specs import `test` (and `expect`) from that module — NOT from `@playwright/test` — and destructure `pageManager` from the test arguments: `test('...', async ({ pageManager }) => { ... })`. Never write `new PageManager(page)` inside a test body or `beforeEach`. Rationale: construction lives in one place, so auth state, per-test logging, or additional context can be wired in with a one-line change to the fixture factory instead of edits across every spec. For suite-local fixtures (e.g., an authenticated API request context only the E2E/API specs need), create `tests/<suite>/fixtures.ts` that extends the global `test`.
+5a. **Specs consume `pageManager` via the fixture — never construct it inline.** The `pageManager` fixture lives in `src/infrastructure/fixtures.ts`. Specs import `test` (and `expect`) from that module — NOT from `@playwright/test` — and destructure `pageManager` from the test arguments: `test('...', async ({ pageManager }) => { ... })`. Never write `new PageManager(page)` inside a test body or `beforeEach`.
+
+   **API clients are constructed inline in the test body** — not via a fixture file. Use the `request` fixture directly for unauthenticated clients (`new CustomersApiClient(request)`). For clients needing a custom auth context, create and dispose the context inline:
+   ```ts
+   const ctx = await playwright.request.newContext({ baseURL: ..., httpCredentials: ... });
+   try {
+     const api = new AccountsApiClient(ctx);
+     // ...
+   } finally {
+     await ctx.dispose();
+   }
+   ```
 
 6. **Test isolation via `test.beforeEach`.** Shared setup (navigate, verify ready state, build per-test data) lives in `beforeEach`. Each test gets a fresh Playwright `page` fixture — no shared state between tests. The `pageManager` fixture handles construction; `beforeEach` only orchestrates the shared *actions* for the suite.
 
@@ -81,4 +97,4 @@ test.spec.ts
 
 ## CI
 
-`.github/workflows/playwright.yml` installs **only chromium** (per docs' "install only browsers you need"), then runs typecheck → lint → API tests → UI chromium. Traces are captured on the first retry (`trace: 'on-first-retry'` in `playwright.config.ts`); the HTML report is uploaded as an artifact.
+`.github/workflows/playwright.yml` uses Node 22 and installs from the public npm registry (`npm install --registry=https://registry.npmjs.org` — the lock file resolves from a private corporate registry). It installs **only chromium** (per docs' "install only browsers you need"), then runs typecheck → lint → API tests → UI chromium → E2E tests. Traces are captured on the first retry (`trace: 'on-first-retry'` in `playwright.config.ts`); the HTML report is uploaded as an artifact. A second `docker` job builds the image and runs `@smoke` to validate the container.
