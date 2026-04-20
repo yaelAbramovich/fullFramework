@@ -31,13 +31,9 @@ function readNumericEnvironmentVariableOrDefault(
   return parsedValue;
 }
 
-export const AUTH_STATE_PATH = '.auth/user.json';
-
 export interface EnvironmentConfiguration {
   uiBaseUrl: string;
   apiBaseUrl: string;
-  uiUsername: string;
-  uiPassword: string;
   defaultActionTimeoutMs: number;
   defaultNavigationTimeoutMs: number;
   logLevel: SupportedLogLevel;
@@ -46,14 +42,12 @@ export interface EnvironmentConfiguration {
 export const environmentConfiguration: EnvironmentConfiguration = {
   uiBaseUrl: readStringEnvironmentVariableOrDefault(
     'UI_BASE_URL',
-    'https://the-internet.herokuapp.com',
+    'https://parabank.parasoft.com/parabank',
   ),
   apiBaseUrl: readStringEnvironmentVariableOrDefault(
     'API_BASE_URL',
-    'https://jsonplaceholder.typicode.com',
+    'https://parabank.parasoft.com/parabank/services/bank',
   ),
-  uiUsername: readStringEnvironmentVariableOrDefault('UI_USERNAME', 'tomsmith'),
-  uiPassword: readStringEnvironmentVariableOrDefault('UI_PASSWORD', 'SuperSecretPassword!'),
   defaultActionTimeoutMs: readNumericEnvironmentVariableOrDefault(
     'DEFAULT_ACTION_TIMEOUT_MS',
     10_000,

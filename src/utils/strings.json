@@ -1,27 +1,3 @@
 {
-  "pages": {
-    "login": {
-      "urlPath": "/login",
-      "usernameFieldLabel": "Username",
-      "passwordFieldLabel": "Password",
-      "submitButtonAccessibleName": "Login",
-      "invalidUsernameError": "Your username is invalid!",
-      "invalidPasswordError": "Your password is invalid!",
-      "descriptions": {
-        "usernameField": "Username input field",
-        "passwordField": "Password input field",
-        "submitButton": "Login submit button",
-        "flashMessageWithFragment": "Flash message containing \"{fragment}\""
-      }
-    },
-    "loggedIn": {
-      "secureAreaHeadingText": "Secure Area",
-      "logoutButtonAccessibleName": "Logout",
-      "successFlashMessageFragment": "You logged into a secure area!",
-      "descriptions": {
-        "secureAreaHeading": "Secure Area heading",
-        "logoutButton": "Logout button"
-      }
-    }
-  }
+  "pages": {}
 }
