@@ -18,8 +18,8 @@ export interface HttpRequestOptions {
 
 /**
  * BaseApiClient wraps Playwright's APIRequestContext and adds consistent
- * logging for every request and response. Concrete clients (e.g. UsersApiClient)
- * extend this class and expose endpoint-specific methods.
+ * logging for every request and response. Concrete clients extend this
+ * class and expose endpoint-specific methods.
  */
 export abstract class BaseApiClient {
   protected readonly requestContext: APIRequestContext;

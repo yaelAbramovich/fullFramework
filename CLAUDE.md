@@ -19,28 +19,30 @@ npm run report                           # open last HTML report
 
 Run a single test / project / file:
 ```bash
-npx playwright test tests/ui/login.spec.ts           # one file
-npx playwright test --project=ui-chromium            # one project
-npx playwright test -g "invalid password"            # by title grep
-npx playwright test tests/ui/login.spec.ts:14        # file + line number
+npx playwright test tests/ui/example-login.spec.ts           # one file
+npx playwright test --project=ui                             # one project
+npx playwright test -g "invalid password"                    # by title grep
+npx playwright test tests/ui/example-login.spec.ts:14         # file + line number
 ```
 
 ## Architecture
 
-The framework layers map 1:1 to folders under `src/`. A test never talks to Playwright's `Page` directly — it always goes through a POM accessed via `PageManager`.
+The framework layers map 1:1 to folders under `src/`. It currently ships only the reusable base classes — `BasePage` and `BaseApiClient` — with no concrete page objects or API clients checked in. A test never talks to Playwright's `Page`/`APIRequestContext` directly — it always goes through a class that extends one of the two base classes.
 
 **Read/write flow of a UI test:**
 ```
 test.spec.ts
-  └── new PageManager(page)
-        ├── loginPageInstance()            -> src/pages/LoginPage.ts
-        │      └── extends BasePage        -> src/pages/BasePage.ts
-        │             ├── actions log via  -> src/infrastructure/Logger.ts
-        │             └── page strings via -> src/utils/strings.json
-        └── loggedInSuccessPageInstance()  -> src/pages/LoggedInSuccessPage.ts
+  └── ConcretePage extends BasePage      -> src/pages/BasePage.ts
+        ├── locators via this.page.getBy*().describe()
+        ├── actions/asserts via BasePage helpers
+        └── logs via                     -> src/infrastructure/Logger.ts
 ```
 
-**API tests** follow the same shape: a test creates `new UsersApiClient(request)` (extends `BaseApiClient`), which wraps Playwright's `APIRequestContext` and adds the same logging conventions. API paths live on the client that uses them (as `private static readonly` constants), not in `strings.json`.
+**API tests** follow the same shape: a concrete class extends `BaseApiClient` (`src/api/BaseApiClient.ts`), which wraps Playwright's `APIRequestContext` and adds the same logging conventions. API paths live on the client that uses them (as `private static readonly` constants), not in `strings.json`.
+
+See `tests/ui/example-login.spec.ts` and `tests/api/example-posts.spec.ts` for worked examples — each defines a small concrete class local to the test file (not under `src/`) purely to demonstrate the base classes end-to-end.
+
+**Fixtures** (`src/infrastructure/fixtures.ts`) currently just re-exports Playwright's `test`/`expect` with an empty `TestFixtures` — a scaffold ready for global POM fixtures once real page objects exist (see convention 5 below).
 
 **Configuration** (`src/config/environment.ts`) is the only place `process.env` is read. It exposes a typed `environmentConfiguration` object that `playwright.config.ts` and the rest of the code import. Add a new env var there first, never read `process.env.*` from anywhere else.
 
@@ -58,9 +60,9 @@ test.spec.ts
 
 4. **Web-first assertions only.** `await expect(locator).toBeVisible()` (wrapped as `assertElementIsVisible`) — never `expect(await locator.isVisible()).toBe(true)` and never `locator.waitFor({ state: 'visible' })` as a pre-action gate. Playwright's actions auto-wait; the only reason to assert visibility is to verify a state.
 
-5. **PageManager pattern.** Fields are `private readonly`; every POM is instantiated in the constructor; tests access pages via `pageManager.xxxInstance()` accessor methods (not direct field access). When adding a POM: add a `private readonly` field, instantiate it in the constructor, expose an `xxxInstance()` method.
+5. **POM-as-fixture pattern (once a POM is added to `src/pages/`).** Expose it as a Playwright fixture in `src/infrastructure/fixtures.ts` (test-scoped, lazily instantiated — Playwright only constructs a fixture the first time a test's parameter list references it). Tests access it via the fixture parameter (e.g. `async ({ checkoutPage }) => …`), never via `new CheckoutPage(page)` inside a test. Add its type to `TestFixtures`, add the factory under `.extend<TestFixtures>({ ... })`. The current example tests don't follow this — their page/client classes are intentionally local to the test file, not real framework POMs.
 
-6. **Test isolation via `test.beforeEach`.** Shared setup (instantiate `PageManager`, navigate, verify ready state) lives in `beforeEach`. Each test gets a fresh Playwright `page` fixture — no shared state between tests.
+6. **Test isolation via `test.beforeEach`.** Shared setup (navigate, verify ready state) lives in `beforeEach`, using the same POM fixtures as the tests. Each test gets a fresh Playwright `page` fixture — no shared state between tests.
 
 7. **Playwright best practices are the source of truth.** The reference is https://playwright.dev/docs/best-practices. When reviewing or writing Playwright code, check it against that page and fix anti-patterns proactively (no `waitForTimeout`, no conditional `isVisible()` checks, no CSS/XPath, no manual promise assertions — `@typescript-eslint/no-floating-promises` catches the last one).
 
@@ -68,7 +70,7 @@ test.spec.ts
 
 ## Adding things
 
-- **New page object:** add strings under `pages.newPage.*` in `src/utils/strings.json` (include a `descriptions.*` sub-object for every locator's `.describe()` + `elementDescription` text). Create `src/pages/NewPage.ts` extending `BasePage`, `import strings from '../utils/strings.json'`, reference the strings via `strings.pages.newPage.*`, and register the POM in `PageManager` (field + constructor line + `newPageInstance()` accessor). If a string has a `{placeholder}`, substitute it at the call site with `.replace('{placeholder}', value)`.
+- **New page object:** add strings under `pages.newPage.*` in `src/utils/strings.json` (include a `descriptions.*` sub-object for every locator's `.describe()` + `elementDescription` text). Create `src/pages/NewPage.ts` extending `BasePage`, `import strings from '../utils/strings.json'`, reference the strings via `strings.pages.newPage.*`, and register it as a fixture in `src/infrastructure/fixtures.ts` (add its type to `TestFixtures`, add the factory under `.extend<TestFixtures>({ ... })`). If a string has a `{placeholder}`, substitute it at the call site with `.replace('{placeholder}', value)`.
 - **New API client:** create `src/api/NewApiClient.ts` extending `BaseApiClient`. Hold each endpoint path as a `private static readonly` constant on the client; for parameterised paths add a small `private static` helper (e.g., `singleResourcePath(id: number): string`). Do NOT put API paths in `strings.json`.
 - **New env var:** add to `.env.example`, then to `EnvironmentConfiguration` interface + `environmentConfiguration` object in `src/config/environment.ts`.
 - **New log message:** write it as a template literal at the call site (e.g., `` this.logger.info(`Doing X with ${value}`) ``). Log copy does not go in `strings.json`.

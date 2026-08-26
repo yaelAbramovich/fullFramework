@@ -31,8 +31,6 @@ function readNumericEnvironmentVariableOrDefault(
   return parsedValue;
 }
 
-export const AUTH_STATE_PATH = '.auth/user.json';
-
 export interface EnvironmentConfiguration {
   uiBaseUrl: string;
   apiBaseUrl: string;

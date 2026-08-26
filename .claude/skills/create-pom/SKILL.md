@@ -1,6 +1,6 @@
 ---
 name: create-pom
-description: Generate a Playwright Page Object Model for this repo. Drives Playwright MCP to inspect the target page in a live browser, writes the POM under src/pages/, adds its strings to src/utils/strings.json, extends BasePage if a helper is missing, and registers the POM in PageManager. Invoked explicitly by the user — never auto-trigger.
+description: Generate a Playwright Page Object Model for this repo. Drives Playwright MCP to inspect the target page in a live browser, writes the POM under src/pages/, adds its strings to src/utils/strings.json, extends BasePage if a helper is missing, and registers the POM as a fixture in src/infrastructure/fixtures.ts. Invoked explicitly by the user — never auto-trigger.
 argument-hint: [PageClassName]
 disable-model-invocation: true
 allowed-tools: Bash(npm run typecheck), Bash(npm run lint), Bash(npx playwright test --list)
@@ -51,7 +51,7 @@ Source of truth: <https://playwright.dev/docs/best-practices>. Re-read the page 
    - Must end with `Page` (e.g. `CheckoutPage`, `ShoppingCartPage`, `UserProfilePage`).
    - Must describe the **purpose** of the page, not its position or index. Reject names like `Page1`, `MyPage`, `TheSecondScreen` — ask the user what the page is actually for and propose a better name.
 2. **Navigation steps to reach the page.** Ask the user for the exact sequence of user actions that lead from the app's entry point to the target page. Example: "Log in as a standard user → click the 'Shopping Cart' icon in the header → click 'Checkout'". The skill must follow these literally. If a step is ambiguous, stop and ask — do not guess.
-3. **Auth state.** Ask whether the target page requires a logged-in user. If yes, start from the shared `storageState` (same state the `ui-chromium` project uses). If no, start with `storageState: { cookies: [], origins: [] }`.
+3. **Auth state.** Ask whether the target page requires a logged-in user. There is currently no shared login/`storageState` setup in this framework — if the page needs one, ask the user how they want authentication handled before proceeding (e.g. logging in via UI at the start of the test, or introducing a `storageState`-based setup project).
 4. **Optional direct URL.** If the user already knows the URL and it's reachable without going through the nav steps, accept that as a shortcut.
 
 ## Preflight (do this every time before touching files)
@@ -59,7 +59,7 @@ Source of truth: <https://playwright.dev/docs/best-practices>. Re-read the page 
 - Confirm Playwright MCP tools are reachable in the current session. If they aren't, stop and tell the user to start the Playwright MCP server before re-invoking the skill — do not fall back to guessing locators from screenshots or memory.
 - Re-read `CLAUDE.md` (sections: "Non-obvious conventions", "Adding things") so any rule updates since this skill was written are picked up.
 - Re-read `src/pages/BasePage.ts` and note every `protected` helper currently exposed. The POM **must reuse** these — never reimplement `click`, `fill`, or `expect` directly.
-- Read `src/utils/strings.json` and `src/infrastructure/PageManager.ts` so you know the current shape before editing.
+- Read `src/utils/strings.json` and `src/infrastructure/fixtures.ts` so you know the current shape before editing.
 - Check whether `src/pages/<ClassName>.ts` already exists. If it does, ask the user: overwrite, merge, or cancel.
 
 ## Workflow
@@ -194,33 +194,30 @@ Rule encoding (these map 1-to-1 to the repo's POM rules — verify each one befo
 | 4 | `.describe()` on every locator | Constructor-level and inline/dynamic locators both chain `.describe(strings.pages.<key>.descriptions.<name>)`. |
 | 5 | Small atomic + composite methods | Each atom = one user action. At least one composite that bundles atoms (e.g. `fillUsernamePasswordAndLogin`). Never bundle unrelated actions into a single atom. |
 | 6 | Informative names | Verb + target + qualifier: `clickCheckoutCtaButton`, `assertCartIsEmpty`, `fillShippingAddressField`. No `click()`, `check()`, `doThing()`. |
-| 7 | Registered in PageManager | See Step 6. |
+| 7 | Registered as a fixture | See Step 6. |
 | 8 | Purposeful class name | Ends in `Page`; describes the page's role, not its ordinal position. |
 | 9 | Lives under `src/pages/` | File path is `src/pages/<ClassName>.ts`. |
 | 10 | No implicit waits | Web-first assertions (`expect(locator).toBeVisible()` wrapped as `assertElementIsVisible`). No `waitForTimeout`, no `locator.waitFor()` as a pre-action gate. |
 | 11 | Assertions at the bottom | All `assertXxx()` methods come last, after atomic + composite actions. |
 
-### Step 6 — Register in `PageManager`
+### Step 6 — Register as a fixture in `fixtures.ts`
 
-Open `src/infrastructure/PageManager.ts`. Add, following the existing pattern exactly:
+Open `src/infrastructure/fixtures.ts`. Add, following the existing pattern exactly:
 
 ```ts
 // at the top
 import { <ClassName> } from '../pages/<ClassName>';
 
-// inside the class
-private readonly <lowerCamel>: <ClassName>;
+// inside TestFixtures
+<lowerCamel>: <ClassName>;
 
-// inside the constructor
-this.<lowerCamel> = new <ClassName>(this.page);
-
-// accessor method
-<lowerCamel>Instance(): <ClassName> {
-  return this.<lowerCamel>;
-}
+// inside base.extend<TestFixtures>({ ... })
+<lowerCamel>: async ({ page }, use) => {
+  await use(new <ClassName>(page));
+},
 ```
 
-Convention: the accessor is `<lowerCamelClassName>Instance()` — e.g. `CheckoutPage` → `checkoutPageInstance()`. A test always reaches the POM through `pageManager.checkoutPageInstance().xxx()`; never via a direct `new CheckoutPage(page)` or field access.
+Convention: the fixture property is `<lowerCamelClassName>` — e.g. `CheckoutPage` → `checkoutPage`. A test always reaches the POM through the fixture parameter (`async ({ checkoutPage }) => …`); never via a direct `new CheckoutPage(page)` inside a test.
 
 ### Step 7 — Verify the result
 
@@ -247,7 +244,7 @@ Summarize to the user, in this shape:
 - **Locator strategies used** — one-line count of each strategy in the final POM: `getByTestId: N`, `getByRole: N`, `getByLabel: N`, `getByPlaceholder: N`, `getByText: N`, chained/filtered: N, `locator()`: N. **If `locator()` or any CSS / XPath selector was used, flag it as technical debt** — quote the Playwright best practice ("prefer user-facing attributes over XPath or CSS selectors") and recommend the dev team add a `data-testid` to that element.
 - **Strings added** — list the new keys under `strings.pages.<key>`.
 - **New BasePage helper** — if one was added, name it and explain what it wraps. If none, say "no BasePage change needed".
-- **PageManager accessor** — the name of the new `xxxInstance()` method.
+- **Fixture name** — the name of the new fixture property added to `TestFixtures` in `fixtures.ts`.
 - **Typecheck + lint status** — pass / fail with error summary if fail.
 - **Playwright-best-practice sanity check** — confirm, one line per item: locators are user-facing (no class-name / implementation-detail locators), no implicit waits, all assertions are web-first, any assertion method with multiple independent checks uses `expect.soft` (or is split into separate methods).
 
@@ -255,7 +252,7 @@ Summarize to the user, in this shape:
 
 If the user's request would violate any of the rules below, stop and explain why. Do **not** produce the POM.
 
-1. **`Page` or `Locator` used directly in a test file.** Tests access pages only through `PageManager.xxxInstance()`.
+1. **`Page` or `Locator` used directly in a test file.** Tests access pages only through the POM fixtures exposed by `src/infrastructure/fixtures.ts` (e.g. `async ({ checkoutPage }) => …`).
 2. **A POM method that performs more than one user action.** Split into atoms + one composite. The composite is allowed; a monolithic atom that hides multiple clicks is not.
 3. **Any `page.waitForTimeout(...)`, arbitrary `setTimeout`, or `.waitFor({ state: 'visible' })` as a pre-action gate.** Web-first assertions only (Playwright best practices: "use web-first assertions", "avoid manual assertions without awaiting").
 4. **Manual assertions that don't await** — e.g. `expect(await locator.isVisible()).toBe(true)`. These don't retry and will flake. Use the `assertElementIsVisible` wrapper.
@@ -264,7 +261,7 @@ If the user's request would violate any of the rules below, stop and explain why
 7. **Locator that relies on implementation details** (CSS class names, component IDs, framework-generated attributes) — Playwright best practices: "test user-visible behavior". The locator must be expressible in terms the user can see.
 8. **Third-party calls in the POM or test assertions.** Mock them with `page.route()` at the test level; the POM itself stays third-party-agnostic.
 9. **Class name that doesn't end in `Page` or doesn't describe a real purpose.**
-10. **Skipping PageManager registration.** Every POM must be reachable from `PageManager`; unreachable POMs mean tests can't use them.
+10. **Skipping fixture registration.** Every POM must be reachable as a fixture in `src/infrastructure/fixtures.ts`; unreachable POMs mean tests can't use them.
 11. **Reintroducing a `StringResolver` / `formatString` / locale bundle.** This project deliberately removed those — use `.replace('{placeholder}', value)` at the call site for templated strings.
 
 ## Example invocation
