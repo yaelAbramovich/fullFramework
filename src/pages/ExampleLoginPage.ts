@@ -25,18 +25,30 @@ export class ExampleLoginPage extends BasePage {
     await this.navigateToUrlPath(strings.pages.login.urlPath);
   }
 
-  public async loginWith(username: string, password: string): Promise<void> {
+  public async fillUsernameField(username: string): Promise<void> {
     await this.fillElementWithText(
       this.usernameField,
       username,
       strings.pages.login.descriptions.usernameField,
     );
+  }
+
+  public async fillPasswordField(password: string): Promise<void> {
     await this.fillElementWithText(
       this.passwordField,
       password,
       strings.pages.login.descriptions.passwordField,
     );
+  }
+
+  public async clickLoginButton(): Promise<void> {
     await this.clickOnElement(this.submitButton, strings.pages.login.descriptions.submitButton);
+  }
+
+  public async submitLoginFormWithCredentials(username: string, password: string): Promise<void> {
+    await this.fillUsernameField(username);
+    await this.fillPasswordField(password);
+    await this.clickLoginButton();
   }
 
   public async assertFlashMessageContains(expectedFragment: string): Promise<void> {
