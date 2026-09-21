@@ -51,7 +51,8 @@ export class ExampleLoginPage extends BasePage {
     await this.clickLoginButton();
   }
 
-  public async assertFlashMessageContains(expectedFragment: string): Promise<void> {
+  public async assertLoginSuccessMessageIsVisible(): Promise<void> {
+    const expectedFragment = strings.pages.loggedIn.successFlashMessageFragment;
     const description = strings.pages.login.descriptions.flashMessageWithFragment.replace(
       '{fragment}',
       expectedFragment,
