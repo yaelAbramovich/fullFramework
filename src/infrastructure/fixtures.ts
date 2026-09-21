@@ -1,4 +1,5 @@
 import { test as base } from '@playwright/test';
+import { ExamplePostsApiClient } from '../api/ExamplePostsApiClient';
 
 /**
  * Global Playwright fixtures — everything that is broadly useful across the
@@ -9,20 +10,23 @@ import { test as base } from '@playwright/test';
  * Playwright lazily instantiates each fixture the first time a test's
  * parameter list references it, so unused fixtures cost nothing.
  *
- * To add a global fixture (e.g. a POM):
+ * To add a global fixture (e.g. a POM or API client):
  *   1. Add its type to `TestFixtures`.
  *   2. Add the factory under `.extend<TestFixtures>({ ... })`.
  *
- * Empty for now — no concrete page objects are checked in yet. See
- * `tests/ui/example-login.spec.ts` for how a page object is used before
- * it's promoted to a real framework fixture here.
- *
  * Scope: fixtures default to test-scoped (fresh instance per test), which
- * matches `page` — Playwright's built-in fixture we wrap is also
- * test-scoped, so construction stays aligned with the browser lifecycle.
+ * matches `page`/`request` — Playwright's built-in fixtures we wrap are also
+ * test-scoped, so construction stays aligned with the browser/request
+ * lifecycle.
  */
-export interface TestFixtures {}
+export interface TestFixtures {
+  examplePostsApiClient: ExamplePostsApiClient;
+}
 
-export const test = base.extend<TestFixtures>({});
+export const test = base.extend<TestFixtures>({
+  examplePostsApiClient: async ({ request }, use) => {
+    await use(new ExamplePostsApiClient(request));
+  },
+});
 
 export { expect } from '@playwright/test';

@@ -27,7 +27,7 @@ npx playwright test tests/ui/example-login.spec.ts:14         # file + line numb
 
 ## Architecture
 
-The framework layers map 1:1 to folders under `src/`. It currently ships only the reusable base classes — `BasePage` and `BaseApiClient` — with no concrete page objects or API clients checked in. A test never talks to Playwright's `Page`/`APIRequestContext` directly — it always goes through a class that extends one of the two base classes.
+The framework layers map 1:1 to folders under `src/`. It currently ships the reusable base classes — `BasePage` and `BaseApiClient` — plus one concrete API client (`ExamplePostsApiClient`); no concrete page objects are checked in yet. A test never talks to Playwright's `Page`/`APIRequestContext` directly — it always goes through a class that extends one of the two base classes.
 
 **Read/write flow of a UI test:**
 ```
@@ -40,9 +40,9 @@ test.spec.ts
 
 **API tests** follow the same shape: a concrete class extends `BaseApiClient` (`src/api/BaseApiClient.ts`), which wraps Playwright's `APIRequestContext` and adds the same logging conventions. API paths live on the client that uses them (as `private static readonly` constants), not in `strings.json`.
 
-See `tests/ui/example-login.spec.ts` and `tests/api/example-posts.spec.ts` for worked examples — each defines a small concrete class local to the test file (not under `src/`) purely to demonstrate the base classes end-to-end.
+See `tests/ui/example-login.spec.ts` for a worked `BasePage` example — it defines a small concrete `ExampleLoginPage` class local to the test file (not under `src/`) purely to demonstrate `BasePage` end-to-end. `tests/api/example-posts.spec.ts` demonstrates the same for `BaseApiClient`, but as a real framework client: `ExamplePostsApiClient` lives under `src/api/` and is consumed via the `examplePostsApiClient` fixture (see convention 5 below) rather than instantiated inline.
 
-**Fixtures** (`src/infrastructure/fixtures.ts`) currently just re-exports Playwright's `test`/`expect` with an empty `TestFixtures` — a scaffold ready for global POM fixtures once real page objects exist (see convention 5 below).
+**Fixtures** (`src/infrastructure/fixtures.ts`) exposes `examplePostsApiClient` (test-scoped, built from the built-in `request` fixture) and is otherwise a scaffold ready for global POM fixtures once real page objects exist (see convention 5 below).
 
 **Configuration** (`src/config/environment.ts`) is the only place `process.env` is read. It exposes a typed `environmentConfiguration` object that `playwright.config.ts` and the rest of the code import. Add a new env var there first, never read `process.env.*` from anywhere else.
 
@@ -60,7 +60,7 @@ See `tests/ui/example-login.spec.ts` and `tests/api/example-posts.spec.ts` for w
 
 4. **Web-first assertions only.** `await expect(locator).toBeVisible()` (wrapped as `assertElementIsVisible`) — never `expect(await locator.isVisible()).toBe(true)` and never `locator.waitFor({ state: 'visible' })` as a pre-action gate. Playwright's actions auto-wait; the only reason to assert visibility is to verify a state.
 
-5. **POM-as-fixture pattern (once a POM is added to `src/pages/`).** Expose it as a Playwright fixture in `src/infrastructure/fixtures.ts` (test-scoped, lazily instantiated — Playwright only constructs a fixture the first time a test's parameter list references it). Tests access it via the fixture parameter (e.g. `async ({ checkoutPage }) => …`), never via `new CheckoutPage(page)` inside a test. Add its type to `TestFixtures`, add the factory under `.extend<TestFixtures>({ ... })`. The current example tests don't follow this — their page/client classes are intentionally local to the test file, not real framework POMs.
+5. **POM/client-as-fixture pattern (once a POM or API client is added under `src/pages/` or `src/api/`).** Expose it as a Playwright fixture in `src/infrastructure/fixtures.ts` (test-scoped, lazily instantiated — Playwright only constructs a fixture the first time a test's parameter list references it). Tests access it via the fixture parameter (e.g. `async ({ checkoutPage }) => …`), never via `new CheckoutPage(page)` inside a test. Add its type to `TestFixtures`, add the factory under `.extend<TestFixtures>({ ... })`. `ExamplePostsApiClient` follows this pattern (`examplePostsApiClient` fixture). `example-login.spec.ts`'s `ExampleLoginPage` does not — it's intentionally kept local to the test file, not a real framework POM.
 
 6. **Test isolation via `test.beforeEach`.** Shared setup (navigate, verify ready state) lives in `beforeEach`, using the same POM fixtures as the tests. Each test gets a fresh Playwright `page` fixture — no shared state between tests.
 
