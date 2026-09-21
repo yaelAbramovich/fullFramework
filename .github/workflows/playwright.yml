@@ -60,7 +60,7 @@ jobs:
         run: npx playwright test --project=api ${{ inputs.tag != 'all' && format('--grep "@{0}"', inputs.tag) || '' }}
 
       - name: Run UI tests (chromium)
-        run: npx playwright test --project=ui-chromium ${{ inputs.tag != 'all' && format('--grep "@{0}"', inputs.tag) || '' }}
+        run: npx playwright test --project=ui ${{ inputs.tag != 'all' && format('--grep "@{0}"', inputs.tag) || '' }}
 
       - name: Upload Playwright report
         if: always()

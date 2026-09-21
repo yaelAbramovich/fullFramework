@@ -19,28 +19,30 @@ npm run report                           # open last HTML report
 
 Run a single test / project / file:
 ```bash
-npx playwright test tests/ui/login.spec.ts           # one file
-npx playwright test --project=ui-chromium            # one project
-npx playwright test -g "invalid password"            # by title grep
-npx playwright test tests/ui/login.spec.ts:14        # file + line number
+npx playwright test tests/ui/example-login.spec.ts           # one file
+npx playwright test --project=ui                             # one project
+npx playwright test -g "invalid password"                    # by title grep
+npx playwright test tests/ui/example-login.spec.ts:14         # file + line number
 ```
 
 ## Architecture
 
-The framework layers map 1:1 to folders under `src/`. A test never talks to Playwright's `Page` directly — it always goes through a POM accessed via `PageManager`.
+The framework layers map 1:1 to folders under `src/`. It ships the reusable base classes — `BasePage` and `BaseApiClient` — plus one concrete page object (`ExampleLoginPage`) and one concrete API client (`ExamplePostsApiClient`). A test never talks to Playwright's `Page`/`APIRequestContext` directly — it always goes through a class that extends one of the two base classes.
 
 **Read/write flow of a UI test:**
 ```
 test.spec.ts
-  └── new PageManager(page)
-        ├── loginPageInstance()            -> src/pages/LoginPage.ts
-        │      └── extends BasePage        -> src/pages/BasePage.ts
-        │             ├── actions log via  -> src/infrastructure/Logger.ts
-        │             └── page strings via -> src/utils/strings.json
-        └── loggedInSuccessPageInstance()  -> src/pages/LoggedInSuccessPage.ts
+  └── ConcretePage extends BasePage      -> src/pages/BasePage.ts
+        ├── locators via this.page.getBy*().describe()
+        ├── actions/asserts via BasePage helpers
+        └── logs via                     -> src/infrastructure/Logger.ts
 ```
 
-**API tests** follow the same shape: a test creates `new UsersApiClient(request)` (extends `BaseApiClient`), which wraps Playwright's `APIRequestContext` and adds the same logging conventions. API paths live on the client that uses them (as `private static readonly` constants), not in `strings.json`.
+**API tests** follow the same shape: a concrete class extends `BaseApiClient` (`src/api/BaseApiClient.ts`), which wraps Playwright's `APIRequestContext` and adds the same logging conventions. API paths live on the client that uses them (as `private static readonly` constants), not in `strings.json`.
+
+See `tests/ui/example-login.spec.ts` and `tests/api/example-posts.spec.ts` for worked examples of the full pattern: `ExampleLoginPage` (`src/pages/ExampleLoginPage.ts`) and `ExamplePostsApiClient` (`src/api/ExamplePostsApiClient.ts`) are real framework classes, each consumed via its fixture (`exampleLoginPage`, `examplePostsApiClient` — see convention 5 below) rather than instantiated inline in the test.
+
+**Fixtures** (`src/infrastructure/fixtures.ts`) exposes `exampleLoginPage` and `examplePostsApiClient` (both test-scoped, built from the built-in `page`/`request` fixtures respectively). Register any new POM or API client the same way.
 
 **Configuration** (`src/config/environment.ts`) is the only place `process.env` is read. It exposes a typed `environmentConfiguration` object that `playwright.config.ts` and the rest of the code import. Add a new env var there first, never read `process.env.*` from anywhere else.
 
@@ -58,18 +60,27 @@ test.spec.ts
 
 4. **Web-first assertions only.** `await expect(locator).toBeVisible()` (wrapped as `assertElementIsVisible`) — never `expect(await locator.isVisible()).toBe(true)` and never `locator.waitFor({ state: 'visible' })` as a pre-action gate. Playwright's actions auto-wait; the only reason to assert visibility is to verify a state.
 
-5. **PageManager pattern.** Fields are `private readonly`; every POM is instantiated in the constructor; tests access pages via `pageManager.xxxInstance()` accessor methods (not direct field access). When adding a POM: add a `private readonly` field, instantiate it in the constructor, expose an `xxxInstance()` method.
+5. **POM/client-as-fixture pattern.** Every POM or API client under `src/pages/` or `src/api/` is exposed as a Playwright fixture in `src/infrastructure/fixtures.ts` (test-scoped, lazily instantiated — Playwright only constructs a fixture the first time a test's parameter list references it). Tests access it via the fixture parameter (e.g. `async ({ checkoutPage }) => …`), never via `new CheckoutPage(page)` inside a test. Add its type to `TestFixtures`, add the factory under `.extend<TestFixtures>({ ... })`. `ExampleLoginPage` (`exampleLoginPage` fixture) and `ExamplePostsApiClient` (`examplePostsApiClient` fixture) both follow this pattern.
 
-6. **Test isolation via `test.beforeEach`.** Shared setup (instantiate `PageManager`, navigate, verify ready state) lives in `beforeEach`. Each test gets a fresh Playwright `page` fixture — no shared state between tests.
+6. **Test isolation via `test.beforeEach`.** Shared setup (navigate, verify ready state) lives in `beforeEach`, using the same POM fixtures as the tests. Each test gets a fresh Playwright `page` fixture — no shared state between tests.
 
 7. **Playwright best practices are the source of truth.** The reference is https://playwright.dev/docs/best-practices. When reviewing or writing Playwright code, check it against that page and fix anti-patterns proactively (no `waitForTimeout`, no conditional `isVisible()` checks, no CSS/XPath, no manual promise assertions — `@typescript-eslint/no-floating-promises` catches the last one).
 
-8. **POM methods must be small and single-behavior.** Each public POM method maps to *one* user action — filling one field, clicking one button, reading one piece of text. Multi-step flows (e.g., `submitLoginFormWithCredentials`) are implemented by calling the small methods, not by bundling actions into one monolithic body. Rationale: tests must be free to exercise partial interactions (type username only, click submit without password, validate on blur, etc.) — monolithic methods block that. The same rule applies to API clients: one request per method. When adding a POM method doing more than one user action, split it before merging.
+8. **POM methods must be small and single-behavior — building blocks, not scripts.** Each public POM method maps to *one* user action — filling one field (`fillUsernameField`), clicking one button (`clickLoginButton`), reading one piece of text. A method must never call the `BasePage`/`BaseApiClient` action helpers (`fillElementWithText`, `clickOnElement`, `sendHttpRequest`, …) more than once — that's the signal it should be split into smaller methods. Multi-step flows (e.g., `submitLoginFormWithCredentials`) are implemented by *calling* the small methods, not by bundling several helper calls into one monolithic body. Rationale: tests must be free to compose only the atomic steps they need (type username only, click submit without password, validate on blur, etc.) — monolithic methods block that; the small methods are the building blocks, the composed method is just one convenient assembly of them. The same rule applies to API clients: one request per method. When adding a POM/API-client method that calls more than one action helper, split it before merging.
+
+8a. **Method names must say exactly what they do.** No vague names like `loginWith` — a reader must know a method's effect from its name alone, without opening the file. An atomic method names the one element + action it touches (`fillUsernameField`, `fillPasswordField`, `clickLoginButton`, `getPostById`), never a generic verb alone (`fill`, `click`, `submit`) and never "with" as a stand-in for the actual parameter. A composed method names the outcome it produces (`submitLoginFormWithCredentials`), not the mechanism.
+
+8b. **Don't parameterize a method over a small, framework-known set of values — write one specific method per value instead.** If the possible inputs are exactly the fixed set of messages/states already defined in `strings.json` (e.g. a login success message vs. specific validation errors), a generic method like `assertFlashMessageContains(expectedFragment: string)` pushes the literal string — and the knowledge of which case is being tested — onto the caller, and the method name no longer says what it checks. Prefer one no-argument method per known outcome (`assertLoginSuccessMessageIsVisible()`, `assertInvalidUsernameErrorIsVisible()`, …), each reading its expected string from `strings.json` internally. Reserve method parameters for values that are genuinely dynamic per call (an ID, a search term, arbitrary user-supplied text).
+
+9. **Test files carry no logic.** A test body is a flat sequence of fixture calls (`exampleLoginPage.navigateToLoginPage()`, `examplePostsApiClient.getPostById(1)`, …) and assertions — no conditionals, loops, computed values, or helper functions defined in the spec file. Anyone should be able to read a test top to bottom and know exactly what it does within a few seconds, and pinpoint the failing step from the trace/log output without reading any other file. All decision-making, data shaping, and control flow belongs in the POM/API client (or a suite-local fixtures file, per convention 5), never in `tests/**/*.spec.ts`.
+
+9a. **API test assertions go through named helpers in `src/utils/apiAssertions.ts`, not bare `expect(...)` calls.** A raw `expect(post.id).toBe(1)` in a spec file reads like arithmetic, not English, and repeats across every API test. Wrap each check in a small, generic, exported function — `assertResponseIsSuccessful(response)`, `assertFieldEquals(actualValue, expectedValue, fieldDescription)`, `assertFieldIsPresent(actualValue, fieldDescription)` — so the test reads as a sentence the same way a UI spec reads through POM methods, and every API test can reuse the same helpers. These are generic over the value being checked (unlike POM/API-client methods, which are specific to one page/endpoint) — that's what makes them belong in `src/utils/` rather than on a concrete client. UI assertions don't need this: `BasePage`'s `assertElementIsVisible`/`assertElementContainsText` already fill that role for UI specs.
 
 ## Adding things
 
-- **New page object:** add strings under `pages.newPage.*` in `src/utils/strings.json` (include a `descriptions.*` sub-object for every locator's `.describe()` + `elementDescription` text). Create `src/pages/NewPage.ts` extending `BasePage`, `import strings from '../utils/strings.json'`, reference the strings via `strings.pages.newPage.*`, and register the POM in `PageManager` (field + constructor line + `newPageInstance()` accessor). If a string has a `{placeholder}`, substitute it at the call site with `.replace('{placeholder}', value)`.
+- **New page object:** add strings under `pages.newPage.*` in `src/utils/strings.json` (include a `descriptions.*` sub-object for every locator's `.describe()` + `elementDescription` text). Create `src/pages/NewPage.ts` extending `BasePage`, `import strings from '../utils/strings.json'`, reference the strings via `strings.pages.newPage.*`, and register it as a fixture in `src/infrastructure/fixtures.ts` (add its type to `TestFixtures`, add the factory under `.extend<TestFixtures>({ ... })`). If a string has a `{placeholder}`, substitute it at the call site with `.replace('{placeholder}', value)`.
 - **New API client:** create `src/api/NewApiClient.ts` extending `BaseApiClient`. Hold each endpoint path as a `private static readonly` constant on the client; for parameterised paths add a small `private static` helper (e.g., `singleResourcePath(id: number): string`). Do NOT put API paths in `strings.json`.
+- **New generic assertion helper:** add it to `src/utils/apiAssertions.ts` as a plain exported function, generic over the value type where relevant, taking a `fieldDescription`/message parameter so failures name what was being checked. Only add it there if it's truly generic (works for any endpoint/shape) — an endpoint-specific check belongs on that endpoint's API client instead.
 - **New env var:** add to `.env.example`, then to `EnvironmentConfiguration` interface + `environmentConfiguration` object in `src/config/environment.ts`.
 - **New log message:** write it as a template literal at the call site (e.g., `` this.logger.info(`Doing X with ${value}`) ``). Log copy does not go in `strings.json`.
 
