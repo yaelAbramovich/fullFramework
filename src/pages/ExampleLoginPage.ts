@@ -21,7 +21,7 @@ export class ExampleLoginPage extends BasePage {
       .describe(strings.pages.login.descriptions.submitButton);
   }
 
-  public async open(): Promise<void> {
+  public async navigateToLoginPage(): Promise<void> {
     await this.navigateToUrlPath(strings.pages.login.urlPath);
   }
 
