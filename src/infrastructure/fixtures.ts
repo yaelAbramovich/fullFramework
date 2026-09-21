@@ -1,5 +1,6 @@
 import { test as base } from '@playwright/test';
 import { ExamplePostsApiClient } from '../api/ExamplePostsApiClient';
+import { ExampleLoginPage } from '../pages/ExampleLoginPage';
 
 /**
  * Global Playwright fixtures — everything that is broadly useful across the
@@ -21,11 +22,15 @@ import { ExamplePostsApiClient } from '../api/ExamplePostsApiClient';
  */
 export interface TestFixtures {
   examplePostsApiClient: ExamplePostsApiClient;
+  exampleLoginPage: ExampleLoginPage;
 }
 
 export const test = base.extend<TestFixtures>({
   examplePostsApiClient: async ({ request }, use) => {
     await use(new ExamplePostsApiClient(request));
+  },
+  exampleLoginPage: async ({ page }, use) => {
+    await use(new ExampleLoginPage(page));
   },
 });
 
