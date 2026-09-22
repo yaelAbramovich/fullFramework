@@ -1,5 +1,8 @@
 import { test as base } from '@playwright/test';
 import { ExamplePostsApiClient } from '../api/ExamplePostsApiClient';
+import { AuthApiClient } from '../api/AuthApiClient';
+import { ProductsApiClient } from '../api/ProductsApiClient';
+import { CartsApiClient } from '../api/CartsApiClient';
 import { ExampleLoginPage } from '../pages/ExampleLoginPage';
 
 /**
@@ -22,12 +25,24 @@ import { ExampleLoginPage } from '../pages/ExampleLoginPage';
  */
 export interface TestFixtures {
   examplePostsApiClient: ExamplePostsApiClient;
+  authApiClient: AuthApiClient;
+  productsApiClient: ProductsApiClient;
+  cartsApiClient: CartsApiClient;
   exampleLoginPage: ExampleLoginPage;
 }
 
 export const test = base.extend<TestFixtures>({
   examplePostsApiClient: async ({ request }, use) => {
     await use(new ExamplePostsApiClient(request));
+  },
+  authApiClient: async ({ request }, use) => {
+    await use(new AuthApiClient(request));
+  },
+  productsApiClient: async ({ request }, use) => {
+    await use(new ProductsApiClient(request));
+  },
+  cartsApiClient: async ({ request }, use) => {
+    await use(new CartsApiClient(request));
   },
   exampleLoginPage: async ({ page }, use) => {
     await use(new ExampleLoginPage(page));

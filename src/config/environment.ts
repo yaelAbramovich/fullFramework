@@ -31,17 +31,61 @@ function readNumericEnvironmentVariableOrDefault(
   return parsedValue;
 }
 
+export type SupportedTestEnvironment = 'local' | 'qa' | 'stage';
+
+function readTestEnvironment(): SupportedTestEnvironment {
+  const rawValue = readStringEnvironmentVariableOrDefault('ENV', 'local');
+  if (rawValue !== 'local' && rawValue !== 'qa' && rawValue !== 'stage') {
+    throw new Error(
+      `Environment variable "ENV" must be one of "local", "qa", "stage" but got "${rawValue}"`,
+    );
+  }
+  return rawValue;
+}
+
+function readEnvironmentScopedVariableOrDefault(
+  variableBaseName: string,
+  testEnvironment: SupportedTestEnvironment,
+  defaultValue: string,
+): string {
+  return readStringEnvironmentVariableOrDefault(
+    `${variableBaseName}_${testEnvironment.toUpperCase()}`,
+    defaultValue,
+  );
+}
+
+function readRequiredEnvironmentScopedVariable(
+  variableBaseName: string,
+  testEnvironment: SupportedTestEnvironment,
+): string {
+  const scopedVariableName = `${variableBaseName}_${testEnvironment.toUpperCase()}`;
+  const rawValue = readEnvironmentVariableOrUndefined(scopedVariableName);
+  if (rawValue === undefined) {
+    throw new Error(
+      `Environment variable "${scopedVariableName}" is required but was not set. Add it to your .env file.`,
+    );
+  }
+  return rawValue;
+}
+
 export interface EnvironmentConfiguration {
+  testEnvironment: SupportedTestEnvironment;
   uiBaseUrl: string;
   apiBaseUrl: string;
   uiUsername: string;
   uiPassword: string;
+  shopApiBaseUrl: string;
+  shopApiUsername: string;
+  shopApiPassword: string;
   defaultActionTimeoutMs: number;
   defaultNavigationTimeoutMs: number;
   logLevel: SupportedLogLevel;
 }
 
+const testEnvironment = readTestEnvironment();
+
 export const environmentConfiguration: EnvironmentConfiguration = {
+  testEnvironment,
   uiBaseUrl: readStringEnvironmentVariableOrDefault(
     'UI_BASE_URL',
     'https://the-internet.herokuapp.com',
@@ -52,6 +96,17 @@ export const environmentConfiguration: EnvironmentConfiguration = {
   ),
   uiUsername: readStringEnvironmentVariableOrDefault('UI_USERNAME', 'tomsmith'),
   uiPassword: readStringEnvironmentVariableOrDefault('UI_PASSWORD', 'SuperSecretPassword!'),
+  shopApiBaseUrl: readEnvironmentScopedVariableOrDefault(
+    'SHOP_API_BASE_URL',
+    testEnvironment,
+    'https://dummyjson.com',
+  ),
+  shopApiUsername: readEnvironmentScopedVariableOrDefault(
+    'SHOP_API_USERNAME',
+    testEnvironment,
+    'emilys',
+  ),
+  shopApiPassword: readRequiredEnvironmentScopedVariable('SHOP_API_PASSWORD', testEnvironment),
   defaultActionTimeoutMs: readNumericEnvironmentVariableOrDefault(
     'DEFAULT_ACTION_TIMEOUT_MS',
     10_000,
